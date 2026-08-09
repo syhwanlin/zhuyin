@@ -95,10 +95,18 @@
   .chip.used{opacity:.25;pointer-events:none}
 
   /* 描寫 */
+  .penbox{display:flex;flex-direction:column;align-items:center;gap:10px}
   .penwrap{align-self:center;position:relative;width:min(78vw,330px);aspect-ratio:1}
   #pad{width:100%;height:100%;display:block;border:2.5px solid var(--ink);background:#fff;
     box-shadow:0 4px 0 var(--ink);touch-action:none}
-  .penwrap .mark circle{stroke-width:4}
+  /* r=45 的圓周是 283，dasharray 要比它大，不然收筆處會露出一小截紅弧 */
+  .penwrap .mark circle{stroke-width:4;stroke-dasharray:290;stroke-dashoffset:290}
+  .pips{display:flex;gap:8px;justify-content:center;align-items:center;height:16px}
+  .pip{width:10px;height:10px;border-radius:50%;border:2px solid var(--line);
+    transition:transform .2s,background .2s,border-color .2s}
+  .pip.done{background:var(--ink);border-color:var(--ink)}
+  .pip.now{border-color:var(--red);transform:scale(1.35)}
+  .penmsg{height:21px;text-align:center;font-size:14.5px;color:var(--ink-soft)}
   .penrow{display:flex;align-items:center;justify-content:center;gap:22px}
   .icon{width:56px;height:56px;border-radius:50%;border:2px solid var(--ink);background:#fff;
     display:grid;place-items:center;cursor:pointer;font-size:22px;padding:0;color:inherit}
@@ -195,9 +203,13 @@
   </div>
 
   <div class="stage" id="s-pen" hidden>
-    <div class="penwrap">
-      <canvas id="pad"></canvas>
-      <svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45"/></svg>
+    <div class="penbox">
+      <div class="pips" id="penPips"></div>
+      <div class="penwrap">
+        <canvas id="pad"></canvas>
+        <svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45"/></svg>
+      </div>
+      <div class="penmsg" id="penMsg"></div>
     </div>
     <div class="penrow">
       <button class="icon" id="penClear" aria-label="重寫">↺</button>
@@ -206,7 +218,7 @@
           <path d="M6 15h6l8-6v22l-8-6H6z" fill="var(--ink)"/>
           <path class="wave" d="M24 14c2.6 2.6 2.6 9.4 0 12"/></svg>
       </button>
-      <button class="icon go" id="penDone" aria-label="寫好了">✓</button>
+      <button class="icon go" id="penDemo" aria-label="看一次筆順">▶</button>
     </div>
   </div>
 </div>
@@ -242,22 +254,31 @@
     <span class="sw" style="background:#FFE0DE"></span>剛學、還會錯　
     <span class="sw" style="background:#FFE9A8"></span>練習中　
     <span class="sw" style="background:#CDE8D5"></span>穩了<br>
-    紅框表示這個符號已經有你錄的筆順。
+    紅框表示這個符號的筆順被你錄的蓋掉了，其餘用內建筆順。
   </div>
 
   <h2>描寫練習</h2>
   <div class="row">
     <div>寬鬆度
-      <p>1 最嚴、3 最鬆。手指比筆粗很多，小小孩建議 3。</p>
+      <p>1 最嚴、3 最鬆。判定的是每一筆的形狀、起筆點和方向。
+         手指比筆粗很多，小小孩建議 3。</p>
     </div>
     <button class="sm" id="loose">2</button>
   </div>
   <div class="row">
-    <div>錄製筆順
-      <p>對照教育部筆順學習網，自己照著寫一次，之後小孩描寫時會先看到示範。
-         沒錄也能玩，只是沒有筆順引導。</p>
+    <div>引導多少
+      <p>多＝每題都先跑一次筆順，停手馬上再示範這一筆。
+         中＝還不熟的符號才先示範，停一下才提示。
+         少＝只有描紅和起筆點，想看示範自己按 ▶。</p>
     </div>
-    <button class="sm" id="openRec">開始錄</button>
+    <button class="sm" id="guide">中</button>
+  </div>
+  <div class="row">
+    <div>自己錄筆順
+      <p>37 個符號都內建筆順了，這裡只在你想改的時候用。
+         錄過的符號會蓋掉內建值，可以再按「用回內建」還原。</p>
+    </div>
+    <button class="sm" id="openRec">打開</button>
   </div>
 
   <h2>看圖拼音</h2>
@@ -311,10 +332,11 @@
   <div class="recbar">
     <button class="sm" id="recPrev">← 上一個</button>
     <button class="sm" id="recUndo">退一筆</button>
+    <button class="sm" id="recBuiltin">用回內建</button>
     <button class="sm" id="recSave">存並下一個 →</button>
   </div>
-  <div class="recinfo">一筆一筆照標準筆順寫。抬起手指算一筆。<br>
-    筆順請對照教育部「國字標準字體筆順學習網」的注音筆順查詢。</div>
+  <div class="recinfo">一筆一筆照著底稿寫，抬起手指算一筆。存檔後這個符號就用你錄的。<br>
+    要核對標準筆順，請查教育部「國字標準字體筆順學習網」的注音筆順。</div>
 </div></div>
 
 <script>
@@ -366,6 +388,49 @@ const WORDS=[
   ['🚢','船',['ㄔ','ㄨ','ㄢ'],2,'chuan2',3],['🛏️','床',['ㄔ','ㄨ','ㄤ'],2,'chuang2',3]];
 const TONE=['','ˊ','ˇ','ˋ'];
 
+/* 內建筆順：每個符號一組筆畫，每畫是一串 [x,y]（0~1，左上為原點），
+   點的順序就是下筆方向。依《國語注音符號手冊》的筆形與「由上而下、
+   由左而右、先橫後豎、先撇後捺」整理，字形對照系統字型校過。
+   家長模式錄的資料會蓋掉同一個符號的內建值。 */
+const PEN={
+ㄅ:[[[.36,.20],[.30,.33],[.23,.45],[.17,.56]],[[.29,.26],[.50,.25],[.72,.24],[.70,.45],[.62,.64],[.50,.78]]],
+ㄆ:[[[.48,.22],[.38,.30],[.29,.38]],[[.27,.38],[.48,.37],[.68,.36],[.50,.56],[.30,.72],[.16,.80]],[[.38,.50],[.50,.62],[.64,.75]]],
+ㄇ:[[[.24,.30],[.24,.53],[.24,.76]],[[.24,.30],[.50,.29],[.75,.29],[.74,.52],[.73,.76]]],
+ㄈ:[[[.18,.32],[.48,.31],[.77,.29]],[[.20,.34],[.20,.53],[.20,.72],[.50,.71],[.79,.70]]],
+ㄉ:[[[.18,.43],[.40,.42],[.62,.40],[.58,.60],[.48,.78]],[[.36,.26],[.26,.52],[.14,.78]]],
+ㄊ:[[[.45,.24],[.47,.34],[.48,.44]],[[.13,.47],[.45,.45],[.76,.43]],[[.58,.50],[.44,.64],[.30,.77],[.50,.75],[.70,.73]]],
+ㄋ:[[[.26,.30],[.45,.29],[.62,.28],[.55,.38],[.47,.48]],[[.48,.46],[.66,.47],[.66,.62],[.55,.74],[.43,.80]]],
+ㄌ:[[[.30,.46],[.50,.44],[.68,.42],[.63,.62],[.52,.79]],[[.38,.27],[.28,.52],[.16,.78]]],
+ㄍ:[[[.42,.28],[.33,.40],[.26,.50],[.33,.64],[.40,.78]],[[.68,.28],[.59,.40],[.52,.50],[.58,.64],[.64,.78]]],
+ㄎ:[[[.14,.33],[.44,.31],[.74,.28]],[[.24,.50],[.44,.49],[.60,.47],[.62,.62],[.52,.74],[.42,.80]]],
+ㄏ:[[[.18,.34],[.48,.32],[.78,.30]],[[.24,.34],[.22,.58],[.16,.80]]],
+ㄐ:[[[.30,.28],[.30,.44],[.31,.56],[.44,.61],[.58,.62]],[[.62,.24],[.60,.52],[.56,.80]]],
+ㄑ:[[[.56,.26],[.42,.38],[.30,.50],[.48,.65],[.66,.80]]],
+ㄒ:[[[.14,.31],[.48,.29],[.82,.27]],[[.48,.31],[.47,.56],[.46,.80]]],
+ㄓ:[[[.45,.24],[.45,.48],[.45,.72]],[[.27,.36],[.27,.47],[.27,.58],[.45,.57],[.62,.56]],[[.62,.36],[.62,.47],[.62,.57]],[[.12,.76],[.46,.75],[.80,.73]]],
+ㄔ:[[[.56,.24],[.46,.34],[.36,.44]],[[.58,.38],[.42,.51],[.26,.63]],[[.52,.44],[.51,.63],[.50,.82]]],
+ㄕ:[[[.22,.30],[.45,.29],[.68,.28],[.65,.38],[.62,.47]],[[.32,.45],[.48,.44],[.64,.43]],[[.33,.46],[.25,.63],[.16,.80]]],
+ㄖ:[[[.30,.30],[.29,.52],[.28,.74]],[[.30,.30],[.48,.29],[.66,.29],[.65,.51],[.64,.74]],[[.29,.52],[.47,.51],[.65,.51]],[[.28,.74],[.46,.73],[.64,.73]]],
+ㄗ:[[[.30,.30],[.49,.29],[.68,.28],[.64,.44],[.60,.60]],[[.46,.33],[.45,.58],[.44,.82]]],
+ㄘ:[[[.14,.40],[.45,.38],[.76,.36]],[[.54,.26],[.51,.40],[.50,.51],[.62,.50],[.75,.49],[.62,.66],[.48,.80]]],
+ㄙ:[[[.46,.26],[.32,.50],[.19,.72],[.38,.72],[.56,.71]],[[.57,.62],[.64,.70],[.70,.78]]],
+ㄚ:[[[.20,.29],[.33,.41],[.45,.52]],[[.66,.27],[.56,.40],[.47,.52]],[[.47,.49],[.46,.65],[.45,.81]]],
+ㄛ:[[[.12,.35],[.42,.33],[.72,.31]],[[.48,.35],[.36,.44],[.29,.56],[.31,.68],[.45,.76],[.68,.73]]],
+ㄜ:[[[.14,.43],[.44,.41],[.74,.39]],[[.48,.27],[.48,.40],[.47,.53]],[[.44,.53],[.32,.61],[.30,.71],[.44,.77],[.70,.73]]],
+ㄝ:[[[.10,.52],[.42,.49],[.74,.46]],[[.60,.27],[.59,.47],[.58,.66]],[[.43,.28],[.42,.50],[.42,.70],[.56,.76],[.73,.73]]],
+ㄞ:[[[.16,.33],[.46,.31],[.75,.29]],[[.18,.51],[.42,.50],[.64,.48],[.56,.64],[.47,.80]],[[.33,.36],[.24,.58],[.15,.80]]],
+ㄟ:[[[.16,.34],[.32,.32],[.46,.31],[.56,.52],[.68,.68],[.80,.78]]],
+ㄠ:[[[.50,.26],[.40,.38],[.30,.50],[.44,.49],[.57,.48]],[[.57,.52],[.44,.64],[.31,.76],[.44,.75],[.57,.73]],[[.53,.62],[.58,.70],[.62,.79]]],
+ㄡ:[[[.20,.31],[.40,.30],[.58,.29],[.38,.55],[.18,.80]],[[.38,.44],[.52,.60],[.66,.77]]],
+ㄢ:[[[.24,.31],[.44,.30],[.62,.29],[.51,.41],[.40,.52]],[[.28,.54],[.48,.52],[.66,.50],[.60,.66],[.49,.80]]],
+ㄣ:[[[.30,.30],[.29,.44],[.28,.55],[.47,.54],[.66,.53]],[[.66,.52],[.62,.66],[.57,.80]]],
+ㄤ:[[[.20,.42],[.46,.41],[.72,.39]],[[.44,.24],[.30,.52],[.17,.79]],[[.50,.43],[.52,.60],[.54,.70],[.64,.74],[.74,.73]]],
+ㄥ:[[[.48,.28],[.36,.48],[.24,.70],[.47,.71],[.70,.72]]],
+ㄦ:[[[.32,.30],[.27,.54],[.22,.78]],[[.55,.28],[.55,.50],[.55,.68],[.64,.73],[.73,.71]]],
+ㄧ:[[[.12,.50],[.50,.49],[.88,.48]]],
+ㄨ:[[[.72,.24],[.48,.51],[.24,.78]],[[.28,.24],[.52,.51],[.76,.78]]],
+ㄩ:[[[.30,.34],[.29,.52],[.28,.68],[.46,.67],[.62,.66]],[[.62,.32],[.62,.52],[.62,.72]]]};
+
 /* ================= 2. 儲存 =================
    自架時把下面兩個函式換成 localStorage 即可 */
 let STORAGE='記憶體（重開會歸零）';
@@ -393,7 +458,7 @@ const KEY='zhuyin.progress.v3';
 
 /* ================= 3. 熟練度 ================= */
 const GAP=[0,0,1,3,8,20], MAXNEW=4, ROUND=8;
-let st={n:0,coop:false,tier:1,tone:false,loose:2,s:{},w:{},pen:{}};
+let st={n:0,coop:false,tier:1,tone:false,loose:2,guide:2,s:{},w:{},pen:{}};
 ORDER.forEach(k=>st.s[k]={lv:0,seen:0,ok:0,last:-99});
 WORDS.forEach(w=>st.w[w[4]]={seen:0,ok:0});
 
@@ -467,6 +532,7 @@ function unlock(){
 async function begin(m){
   unlock();
   const saved=await store.get(KEY); if(saved&&saved.s) st=Object.assign(st,saved);
+  if(!st.guide) st.guide=2; if(!st.loose) st.loose=2;
   mode=m; $('start').hidden=true; newRound();
 }
 $('pickSym').onclick=()=>begin('sym');
@@ -556,12 +622,17 @@ function checkMix(){
 $('card').onclick=()=>{ if(word) playWord(word) };
 
 /* ================= 8. 玩法三：描寫 =================
-   形狀不是我硬寫的座標，是直接從系統字型的字面取出來的，
-   所以字形一定對；筆順則來自家長錄製（可留空）。
+   逐筆比對：每寫完一筆，就跟「這個符號的第 n 筆」比形狀、比起筆點、比方向。
+   對了才留下墨跡並前進到下一筆，所以筆順、筆數、方向都算數。
+   同一筆一直寫不好會漸進放寬，連錯五次就示範著幫他補上，不會卡住。
    ============================================================ */
 const pad=$('pad'), pctx=pad.getContext('2d');
 const FONT='"PingFang TC","Heiti TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif';
-let penSym=null, strokes=[], cur=null, penBusy=false, guiding=false, tries=0;
+const strokesOf=s=>(st.pen[s]&&st.pen[s].length?st.pen[s]:PEN[s])||[];
+
+let penSym=null, penRef=[], penIdx=0, penInk=[], cur=null, penBusy=false;
+let penErr=0, penErrCur=0, penHelped=0, badStroke=null, padSize={w:300,h:300};
+let ghostOn=false, ghostK=0, ghostRAF=null, idleT=null, demoRAF=null, penT=null;
 
 function fitCanvas(cv){
   const r=cv.getBoundingClientRect(), d=Math.min(devicePixelRatio||1,2.5);
@@ -569,224 +640,277 @@ function fitCanvas(cv){
   const c=cv.getContext('2d'); c.setTransform(d,0,0,d,0,0);
   return {w:r.width,h:r.height};
 }
-/* 字面遮罩：size×size 的 0/1 陣列。grow>0 會把字往外撐開，當作容錯範圍 */
-function glyphMask(sym,size,grow){
-  const c=document.createElement('canvas'); c.width=c.height=size;
-  const x=c.getContext('2d');
-  x.textAlign='center'; x.textBaseline='middle';
-  x.font=`${Math.round(size*.74)}px ${FONT}`;
-  if(grow>0){ x.lineWidth=grow*2; x.lineJoin='round'; x.strokeStyle='#000'; x.strokeText(sym,size/2,size*.52) }
-  x.fillStyle='#000'; x.fillText(sym,size/2,size*.52);
-  const d=x.getImageData(0,0,size,size).data, m=new Uint8Array(size*size);
-  for(let i=0;i<m.length;i++) m[i]=d[i*4+3]>60?1:0;
-  return m;
-}
-function inkMask(list,size,width){
-  const c=document.createElement('canvas'); c.width=c.height=size;
-  const x=c.getContext('2d');
-  x.strokeStyle='#000'; x.lineWidth=width; x.lineCap='round'; x.lineJoin='round';
-  list.forEach(s=>{
-    if(s.length<2){ x.beginPath(); x.arc(s[0][0]*size,s[0][1]*size,width/2,0,7); x.fillStyle='#000'; x.fill(); return }
-    x.beginPath(); x.moveTo(s[0][0]*size,s[0][1]*size);
-    s.forEach(p=>x.lineTo(p[0]*size,p[1]*size)); x.stroke();
-  });
-  const d=x.getImageData(0,0,size,size).data, m=new Uint8Array(size*size);
-  for(let i=0;i<m.length;i++) m[i]=d[i*4+3]>60?1:0;
-  return m;
-}
-/* 逐筆判定：每寫完一筆就檢查，不必事先知道筆順
-   1. 這一筆有沒有壓在字面上（沒有 → 退回，不留痕跡）
-   2. 這一筆有沒有描到「還沒描過」的部分（沒有 → 重複描，退回）
-   3. 累積覆蓋率到門檻就自動算完成 */
-const N=160;
-let penTight=null,penLoose=null,penCovered=null,penTT=0,penL=0;
-let hint=null,hintOn=false,hintT=null,pulse=null,badStroke=null;
-const tolPx =()=>[0,.10,.14,.19][st.loose]*N;
-const needCv=()=>[0,.82,.74,.66][st.loose];
-const allowOv=()=>[0,.20,.30,.42][st.loose];
 
-function prepPen(sym){
-  penL=tolPx();
-  penTight=glyphMask(sym,N,0);
-  penLoose=glyphMask(sym,N,penL);
-  penCovered=new Uint8Array(N*N);
-  penTT=0; for(let i=0;i<penTight.length;i++) if(penTight[i]) penTT++;
-}
-function coverage(){
-  let c=0; for(let i=0;i<penTight.length;i++) if(penTight[i]&&penCovered[i]) c++;
-  return penTT?c/penTT:0;
-}
-function judgeStroke(s){
-  const thick=inkMask([s],N,penL*1.5), thin=inkMask([s],N,Math.max(4,penL*.7));
-  let io=0,it=0,gain=0,rem=0;
-  for(let i=0;i<penTight.length;i++){
-    if(thin[i]){ it++; if(!penLoose[i]) io++ }
-    if(penTight[i]&&!penCovered[i]){ rem++; if(thick[i]) gain++ }
+/* ---- 幾何：把兩條線各自等距切成 K 點再一對一比距離 ---- */
+const K=24;
+function plen(p){ let L=0; for(let i=1;i<p.length;i++) L+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]); return L }
+function resample(p,n){
+  const d=[0]; let L=0;
+  for(let i=1;i<p.length;i++){ L+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]); d.push(L) }
+  if(L<1e-6) return Array.from({length:n},()=>[p[0][0],p[0][1]]);
+  const out=[]; let j=1;
+  for(let i=0;i<n;i++){
+    const t=L*i/(n-1);
+    while(j<d.length-1&&d[j]<t) j++;
+    const a=p[j-1], b=p[j], t0=d[j-1], t1=d[j], r=t1>t0?(t-t0)/(t1-t0):0;
+    out.push([a[0]+(b[0]-a[0])*r, a[1]+(b[1]-a[1])*r]);
   }
-  if(it && io/it>allowOv()) return false;                 // 畫到框外太多
-  if(rem && gain<Math.max(rem*.05,penTT*.04)) return false; // 沒描到新的地方
-  for(let i=0;i<penTight.length;i++) if(thick[i]) penCovered[i]=1;
-  return true;
+  return out;
 }
-/* 還沒描到的部分切成連通塊，依筆順基本法則「由上而下、由左而右」挑下一塊的起點 */
-function nextHint(){
-  const rem=new Uint8Array(N*N); let any=false;
-  for(let i=0;i<penTight.length;i++) if(penTight[i]&&!penCovered[i]){ rem[i]=1; any=true }
-  if(!any) return null;
-  const seen=new Uint8Array(N*N); let best=null;
-  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
-    const i0=y*N+x; if(!rem[i0]||seen[i0]) continue;
-    const q=[i0]; seen[i0]=1;
-    let head=0,size=0,top=null;
-    while(head<q.length){
-      const p=q[head++]; size++;
-      const py=(p/N)|0, px=p%N;
-      if(!top||py<top[1]||(py===top[1]&&px<top[0])) top=[px,py];
-      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
-        const nx=px+dx, ny=py+dy;
-        if(nx<0||ny<0||nx>=N||ny>=N) continue;
-        const np=ny*N+nx;
-        if(rem[np]&&!seen[np]){ seen[np]=1; q.push(np) }
-      }
-    }
-    if(size<penTT*.06) continue;                          // 碎屑不算一筆
-    if(!best||top[1]<best[1]||(top[1]===best[1]&&top[0]<best[0])) best=top;
+function dist(a,b){
+  let sum=0,max=0;
+  for(let i=0;i<a.length;i++){
+    const d=Math.hypot(a[i][0]-b[i][0],a[i][1]-b[i][1]);
+    sum+=d; if(d>max) max=d;
   }
-  return best?[(best[0]+.5)/N,(best[1]+.5)/N]:null;
+  return {mean:sum/a.length,max};
 }
-function armHint(){
-  clearTimeout(hintT); clearInterval(pulse); hintOn=false; redrawPad();
-  hintT=setTimeout(()=>{
-    hint=nextHint(); if(!hint) return;
-    hintOn=true; redrawPad();
-    pulse=setInterval(()=>{ hintOn=!hintOn; redrawPad() },560);
-  },2200);
+/* 一筆對一筆：平均偏差、最大偏差、起筆距離，順便看反過來寫像不像 */
+function match(u,ref){
+  const A=resample(u,K), B=resample(ref,K), R=B.slice().reverse();
+  const f=dist(A,B), r=dist(A,R);
+  return {mean:f.mean, max:f.max, rev:r.mean,
+          start:Math.hypot(A[0][0]-B[0][0],A[0][1]-B[0][1]),
+          ratio:plen(u)/Math.max(plen(ref),1e-4)};
 }
-function stopHint(){ clearTimeout(hintT); clearInterval(pulse); hintOn=false }
+/* 1 最嚴、3 最鬆。單位是格子邊長的比例，手指比筆粗，所以給得大方 */
+const TOL=[null,{s:.15,m:.10,x:.21},{s:.19,m:.13,x:.27},{s:.24,m:.17,x:.34}];
+function tol(){ return TOL[st.loose]||TOL[2] }
+function judge(u){
+  const t=tol(), ref=penRef[penIdx];
+  const ease=1+.22*Math.min(penErrCur,3);          // 同一筆越寫越放寬
+  const m=match(u,ref);
+  if(m.mean<=t.m*ease && m.start<=t.s*ease && m.max<=t.x*ease && m.ratio>.45 && m.ratio<2.4)
+    return {ok:true};
+  if(m.rev<=t.m*ease && m.rev<m.mean) return {ok:false,why:'rev'};
+  for(let j=0;j<penRef.length;j++){
+    if(j===penIdx) continue;
+    const n=match(u,penRef[j]);
+    if(n.mean<=t.m && n.start<=t.s) return {ok:false,why:j<penIdx?'done':'order'};
+  }
+  if(m.start>t.s*ease) return {ok:false,why:'start'};
+  return {ok:false,why:'shape'};
+}
+
+/* ---- 畫面 ---- */
+const INK='#232A31', TPL='#DCD9CC', LEAD='#D93A3A';
+function penPath(c,s,w,h){
+  c.beginPath(); c.moveTo(s[0][0]*w,s[0][1]*h);
+  if(s.length<2){ c.lineTo(s[0][0]*w+.01,s[0][1]*h) } else for(let i=1;i<s.length;i++) c.lineTo(s[i][0]*w,s[i][1]*h);
+}
+function partial(s,k,w,h){                          // 取這一筆的前 k（0~1）段來畫
+  const p=resample(s,40), n=Math.max(2,Math.round(p.length*Math.min(1,k)));
+  penPath(pctx,p.slice(0,n),w,h);
+  return p[n-1];
+}
 function redrawPad(){
-  const {w,h}=padSize;
+  const {w,h}=padSize, u=Math.min(w,h);
   pctx.clearRect(0,0,w,h);
+  pctx.lineCap='round'; pctx.lineJoin='round';
   // 田字格
-  pctx.strokeStyle='#8FB89A'; pctx.globalAlpha=.5; pctx.lineWidth=1;
-  pctx.setLineDash([5,6]);
+  pctx.strokeStyle='#8FB89A'; pctx.globalAlpha=.5; pctx.lineWidth=1; pctx.setLineDash([5,6]);
   pctx.beginPath(); pctx.moveTo(0,h/2); pctx.lineTo(w,h/2);
   pctx.moveTo(w/2,0); pctx.lineTo(w/2,h); pctx.stroke();
   pctx.setLineDash([]); pctx.globalAlpha=1;
-  // 描紅
-  if(penSym){
-    pctx.fillStyle='#E3E0D6'; pctx.textAlign='center'; pctx.textBaseline='middle';
-    pctx.font=`${Math.round(Math.min(w,h)*.74)}px ${FONT}`;
-    pctx.fillText(penSym,w/2,h*.52);
+  // 描紅：整個字的淡灰底
+  pctx.strokeStyle=TPL; pctx.lineWidth=u*.105;
+  penRef.forEach(s=>{ penPath(pctx,s,w,h); pctx.stroke() });
+  // 還沒寫到的筆畫再淡一點，已經寫過的不用再強調
+  pctx.strokeStyle='#F1EFE6'; pctx.lineWidth=u*.075;
+  penRef.forEach((s,i)=>{ if(i>penIdx){ penPath(pctx,s,w,h); pctx.stroke() } });
+  // 小孩已經寫對的筆跡
+  pctx.strokeStyle=INK; pctx.lineWidth=u*.055;
+  penInk.forEach(s=>{ penPath(pctx,s,w,h); pctx.stroke() });
+  // 這一筆的示範（跑一遍給他看）
+  if(ghostOn&&penIdx<penRef.length){
+    const s=penRef[penIdx];
+    pctx.strokeStyle='rgba(217,58,58,.30)'; pctx.lineWidth=u*.085;
+    penPath(pctx,s,w,h); pctx.stroke();
+    pctx.strokeStyle='rgba(217,58,58,.85)'; pctx.lineWidth=u*.05;
+    const head=partial(s,ghostK,w,h); pctx.stroke();
+    pctx.fillStyle=LEAD; pctx.beginPath(); pctx.arc(head[0]*w,head[1]*h,u*.035,0,7); pctx.fill();
   }
-  // 筆順引導：起筆點編號
-  const g=st.pen[penSym];
-  if(g&&!guiding){
-    g.forEach((s,i)=>{
-      const p=s[0]; pctx.fillStyle='rgba(217,58,58,.75)';
-      pctx.beginPath(); pctx.arc(p[0]*w,p[1]*h,9,0,7); pctx.fill();
-      pctx.fillStyle='#fff'; pctx.font='11px '+FONT;
-      pctx.textAlign='center'; pctx.textBaseline='middle';
-      pctx.fillText(i+1,p[0]*w,p[1]*h);
-    });
+  // 起筆點：紅點加筆序
+  if(!penBusy&&penIdx<penRef.length){
+    const p=penRef[penIdx][0];
+    pctx.fillStyle=LEAD; pctx.beginPath(); pctx.arc(p[0]*w,p[1]*h,u*.042,0,7); pctx.fill();
+    pctx.fillStyle='#fff'; pctx.font=`600 ${Math.round(u*.05)}px ${FONT}`;
+    pctx.textAlign='center'; pctx.textBaseline='middle';
+    pctx.fillText(penIdx+1,p[0]*w,p[1]*h+u*.002);
   }
-  // 下一筆從哪裡起筆
-  if(hint&&hintOn&&!guiding){
-    pctx.strokeStyle='rgba(217,58,58,.85)'; pctx.lineWidth=3;
-    pctx.beginPath(); pctx.arc(hint[0]*w,hint[1]*h,13,0,7); pctx.stroke();
-    pctx.fillStyle='rgba(217,58,58,.85)';
-    pctx.beginPath(); pctx.arc(hint[0]*w,hint[1]*h,4.5,0,7); pctx.fill();
-  }
-  // 小孩的筆跡
-  pctx.strokeStyle='#232A31'; pctx.lineWidth=Math.min(w,h)*.055;
-  pctx.lineCap='round'; pctx.lineJoin='round';
-  [...strokes,cur].forEach(s=>{
-    if(!s||!s.length) return;
-    pctx.beginPath(); pctx.moveTo(s[0][0]*w,s[0][1]*h);
-    s.forEach(p=>pctx.lineTo(p[0]*w,p[1]*h)); pctx.stroke();
-  });
+  // 正在寫的
+  if(cur&&cur.length){ pctx.strokeStyle=INK; pctx.lineWidth=u*.055; penPath(pctx,cur,w,h); pctx.stroke() }
   // 被退回的那一筆，紅色閃一下
   if(badStroke&&badStroke.length){
-    pctx.strokeStyle='rgba(217,58,58,.6)';
-    pctx.beginPath(); pctx.moveTo(badStroke[0][0]*w,badStroke[0][1]*h);
-    badStroke.forEach(p=>pctx.lineTo(p[0]*w,p[1]*h)); pctx.stroke();
+    pctx.strokeStyle='rgba(217,58,58,.55)'; pctx.lineWidth=u*.055;
+    penPath(pctx,badStroke,w,h); pctx.stroke();
   }
 }
-let padSize={w:300,h:300};
-function askPen(){
-  penSym=nextSymbol().ans; strokes=[]; cur=null; penBusy=false; tries=0;
-  badStroke=null; hint=null; stopHint();
-  document.querySelector('#s-pen .mark').classList.remove('draw');
-  padSize=fitCanvas(pad); prepPen(penSym);
-  dots(); redrawPad();
-  setTimeout(()=>{ playSym(penSym); showGuide(); armHint() },260);
+function pips(){
+  $('penPips').innerHTML=penRef.map((_,i)=>
+    `<div class="pip ${i<penIdx?'done':''} ${i===penIdx?'now':''}"></div>`).join('');
 }
-/* 有筆順資料就先播一次示範 */
-function showGuide(){
-  const g=st.pen[penSym]; if(!g||!g.length) return;
-  guiding=true; penBusy=true;
-  const {w,h}=padSize; let si=0,t0=null;
-  const step=(ts)=>{
-    if(!t0) t0=ts;
-    const dur=520, k=Math.min(1,(ts-t0)/dur);
+function say(t){ $('penMsg').textContent=t||'' }
+
+/* ---- 提示：停手一下就把這一筆跑一遍 ---- */
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)');
+function ghostLoop(){
+  ghostOn=true;
+  if(REDUCED.matches){ ghostK=1; redrawPad(); return }   // 不動的話就整筆淡淡地顯示
+  let laps=0;
+  const step=()=>{
+    ghostK+=.022;
+    if(ghostK>1.45){ ghostK=0; if(++laps>=4){ ghostK=1; redrawPad(); return } }  // 跑幾趟就停著
     redrawPad();
-    pctx.strokeStyle='rgba(217,58,58,.55)'; pctx.lineWidth=Math.min(w,h)*.05;
-    pctx.lineCap='round';
-    for(let i=0;i<=si;i++){
-      const s=g[i]; if(!s) continue;
-      const upto=i<si?s.length:Math.max(2,Math.round(s.length*k));
-      pctx.beginPath(); pctx.moveTo(s[0][0]*w,s[0][1]*h);
-      for(let j=1;j<upto;j++) pctx.lineTo(s[j][0]*w,s[j][1]*h);
-      pctx.stroke();
-    }
-    if(k<1){ requestAnimationFrame(step) }
-    else if(si<g.length-1){ si++; t0=null; requestAnimationFrame(step) }
-    else { guiding=false; penBusy=false; redrawPad() }
+    ghostRAF=requestAnimationFrame(step);
+  };
+  cancelAnimationFrame(ghostRAF); ghostK=0; step();
+}
+function stopGhost(){ ghostOn=false; cancelAnimationFrame(ghostRAF); ghostRAF=null }
+function armHint(delay){
+  clearTimeout(idleT); stopGhost(); redrawPad();
+  const d=delay!=null?delay:[0,900,1600,2600][st.guide]||1600;
+  idleT=setTimeout(ghostLoop,d);
+}
+function stopHint(){ clearTimeout(idleT); clearTimeout(penT); stopGhost() }
+
+/* ---- 整個字示範一次 ---- */
+function demo(after){
+  stopHint(); penBusy=true; cancelAnimationFrame(demoRAF);
+  const {w,h}=padSize, u=Math.min(w,h); let i=0, t0=null;
+  if(REDUCED.matches){                       // 不放動畫，直接把整個字的筆順標出來
+    redrawPad();
+    pctx.strokeStyle='rgba(217,58,58,.45)'; pctx.lineWidth=u*.055;
+    penRef.forEach((s,k)=>{
+      penPath(pctx,s,w,h); pctx.stroke();
+      pctx.fillStyle=LEAD; pctx.beginPath(); pctx.arc(s[0][0]*w,s[0][1]*h,u*.042,0,7); pctx.fill();
+      pctx.fillStyle='#fff'; pctx.font=`600 ${Math.round(u*.05)}px ${FONT}`;
+      pctx.textAlign='center'; pctx.textBaseline='middle';
+      pctx.fillText(k+1,s[0][0]*w,s[0][1]*h);
+    });
+    setTimeout(()=>{ penBusy=false; redrawPad(); if(after) after() },1400);
+    return;
+  }
+  const step=ts=>{
+    if(!t0) t0=ts;
+    const s=penRef[i], dur=Math.max(360,plen(s)*900), k=Math.min(1,(ts-t0)/dur);
+    redrawPad();
+    pctx.strokeStyle='rgba(217,58,58,.45)'; pctx.lineWidth=u*.055;
+    for(let j=0;j<i;j++){ penPath(pctx,penRef[j],w,h); pctx.stroke() }
+    const head=partial(s,k,w,h); pctx.stroke();
+    pctx.fillStyle=LEAD; pctx.beginPath(); pctx.arc(head[0]*w,head[1]*h,u*.035,0,7); pctx.fill();
+    if(k<1) demoRAF=requestAnimationFrame(step);
+    else if(i<penRef.length-1){ i++; t0=null; demoRAF=requestAnimationFrame(step) }
+    else { penBusy=false; redrawPad(); if(after) after() }
+  };
+  demoRAF=requestAnimationFrame(step);
+}
+
+/* ---- 出題 ---- */
+function askPen(){
+  penSym=nextSymbol().ans;
+  penRef=strokesOf(penSym); penIdx=0; penInk=[]; cur=null;
+  penErr=0; penErrCur=0; penHelped=0; badStroke=null; penBusy=false;
+  stopHint(); cancelAnimationFrame(demoRAF);
+  document.querySelector('#s-pen .mark').classList.remove('draw');
+  padSize=fitCanvas(pad);
+  dots(); pips(); say(''); redrawPad();
+  setTimeout(()=>{
+    playSym(penSym);
+    // 引導「多」每題都示範，「中」只在還不熟的時候示範，「少」要自己按 ▶
+    const show=st.guide===1||(st.guide===2&&st.s[penSym].lv<3);
+    if(show) demo(()=>armHint()); else armHint();
+  },260);
+}
+
+/* ---- 收一筆 ---- */
+function takeStroke(s){
+  if(penIdx>=penRef.length) return;
+  const v=judge(s);
+  if(v.ok){
+    penInk.push(s); penIdx++; penErrCur=0; badStroke=null;
+    say(''); pips(); redrawPad();
+    if(penIdx>=penRef.length) return finishPen();
+    armHint();
+    return;
+  }
+  penErr++; penErrCur++;
+  badStroke=s;
+  say({rev:'方向反了，跟著紅點走',
+       order:`先寫第 ${penIdx+1} 筆`,
+       done:'這一筆寫過了',
+       start:'從紅點開始寫',
+       shape:'照著灰色的線描'}[v.why]);
+  document.querySelector('.penwrap').animate(
+    [{transform:'translateX(0)'},{transform:'translateX(-6px)'},
+     {transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:260});
+  redrawPad();
+  clearTimeout(penT);
+  penT=setTimeout(()=>{
+    badStroke=null;
+    if(penErrCur>=5){ helpStroke(); return }   // 卡太久，示範著幫他補上
+    armHint(penErrCur>=2?0:null);
+  },460);
+}
+/* 連錯五次：把這一筆慢慢畫出來，算他過，但記在成績裡 */
+function helpStroke(){
+  if(penBusy||penIdx>=penRef.length) return;
+  penBusy=true; penErrCur=0; stopHint(); say('我先幫你寫這一筆');
+  const {w,h}=padSize, u=Math.min(w,h), s=penRef[penIdx]; let t0=null;
+  const step=ts=>{
+    if(!t0) t0=ts;
+    const k=Math.min(1,(ts-t0)/700);
+    redrawPad();
+    pctx.strokeStyle='rgba(217,58,58,.75)'; pctx.lineWidth=u*.055;
+    const head=partial(s,k,w,h); pctx.stroke();
+    pctx.fillStyle=LEAD; pctx.beginPath(); pctx.arc(head[0]*w,head[1]*h,u*.035,0,7); pctx.fill();
+    if(k<1){ requestAnimationFrame(step); return }
+    penInk.push(s.map(p=>[p[0],p[1]])); penIdx++; penHelped++;
+    penBusy=false; pips(); say(''); redrawPad();
+    if(penIdx>=penRef.length) finishPen(); else armHint(0);
   };
   requestAnimationFrame(step);
 }
+function finishPen(){
+  penBusy=true; stopHint(); cancelAnimationFrame(demoRAF);
+  const clean=penErr===0&&penHelped===0;
+  gradeSymbol(penSym,penHelped===0&&penErr<=1);
+  say(clean?'一次就寫對了':'寫完了');
+  document.querySelector('#s-pen .mark').classList.add('draw');
+  score();
+}
+
+/* ---- 輸入 ---- */
 function padPt(e,cv){
   const r=cv.getBoundingClientRect();
   return [(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height];
 }
 pad.addEventListener('pointerdown',e=>{
-  if(penBusy) return;
-  stopHint(); pad.setPointerCapture(e.pointerId); cur=[padPt(e,pad)]; redrawPad();
+  if(penBusy||penIdx>=penRef.length) return;
+  clearTimeout(penT); stopHint(); say(''); badStroke=null;
+  pad.setPointerCapture(e.pointerId);
+  cur=[padPt(e,pad)]; redrawPad();
 });
-pad.addEventListener('pointermove',e=>{ if(!cur) return; cur.push(padPt(e,pad)); redrawPad() });
+pad.addEventListener('pointermove',e=>{
+  if(!cur) return;
+  const p=padPt(e,pad), l=cur[cur.length-1];
+  if(Math.hypot(p[0]-l[0],p[1]-l[1])<.004) return;   // 抖動不收
+  cur.push(p); redrawPad();
+});
 ['pointerup','pointercancel'].forEach(t=>pad.addEventListener(t,()=>{
   if(!cur) return;
   const s=cur; cur=null;
-  if(s.length<2) s.push([s[0][0]+.001,s[0][1]+.001]);
-  if(!judgeStroke(s)){                      // 這一筆不算，退回去
-    tries++; badStroke=s; redrawPad();
-    setTimeout(()=>{
-      badStroke=null; redrawPad();
-      if(tries>=2&&st.pen[penSym]) showGuide(); else armHint();
-    },420);
-    return;
-  }
-  tries=0; strokes.push(s); redrawPad();
-  if(coverage()>=needCv()) finishPen(); else armHint();
+  if(s.length<2) s.push([s[0][0]+.002,s[0][1]+.002]);
+  takeStroke(s);
 }));
-function finishPen(){
-  penBusy=true; stopHint();
-  gradeSymbol(penSym,true);
-  document.querySelector('#s-pen .mark').classList.add('draw');
-  score();
-}
 $('penClear').onclick=()=>{
   if(penBusy) return;
-  strokes=[]; cur=null; badStroke=null; tries=0; prepPen(penSym); armHint(); redrawPad();
+  stopHint();
+  penIdx=0; penInk=[]; cur=null; badStroke=null; penErrCur=0;
+  pips(); say(''); redrawPad(); armHint(0);
 };
 $('penSpk').onclick=()=>{ if(penSym) playSym(penSym) };
-$('penDone').onclick=()=>{      // 寫完但還差一點，讓他自己按算完成
-  if(penBusy||!strokes.length) return;
-  if(coverage()>=needCv()*.9) return finishPen();
-  document.querySelector('.penwrap').animate(
-    [{transform:'translateX(0)'},{transform:'translateX(-7px)'},{transform:'translateX(7px)'},{transform:'translateX(0)'}],
-    {duration:280});
-  hint=nextHint(); hintOn=true; redrawPad();
-};
+$('penDemo').onclick=()=>{ if(!penBusy&&penRef.length) demo(()=>armHint(0)) };
 
 /* ================= 9. 家長模式 ================= */
 let hold=null; const gate=$('gate');
@@ -799,7 +923,7 @@ function openParent(){
   $('map').innerHTML=ORDER.map(k=>{
     const r=st.s[k];
     const bg=r.lv===0?'#fff':r.lv<=1?'#FFE0DE':r.lv<4?'#FFE9A8':'#CDE8D5';
-    return `<div class="m ${st.pen[k]?'has':''}" style="background:${bg}">${k}<span>${r.lv||''}</span></div>`;
+    return `<div class="m ${st.pen[k]&&st.pen[k].length?'has':''}" style="background:${bg}">${k}<span>${r.lv||''}</span></div>`;
   }).join('');
   const seen=ORDER.filter(k=>st.s[k].seen>0);
   const tot=seen.reduce((a,k)=>a+st.s[k].seen,0), ok=seen.reduce((a,k)=>a+st.s[k].ok,0);
@@ -810,12 +934,13 @@ function openParent(){
     <div><b>${solid}/37</b>符號已經穩了</div>
     <div><b>${tot?Math.round(ok/tot*100):0}%</b>符號正確率</div>
     <div><b>${wt?Math.round(wo/wt*100):0}%</b>拼音一次答對</div>
-    <div><b>${Object.keys(st.pen).length}/37</b>已錄筆順</div>
+    <div><b>${Object.keys(st.pen).filter(k=>st.pen[k]&&st.pen[k].length).length}/37</b>自訂筆順</div>
     <div style="flex-basis:100%"><b style="font-size:19px">${weak.join(' ')||'—'}</b>還要多練</div>`;
   $('coop').textContent=st.coop?'開啟':'關閉';
   $('tone').textContent=st.tone?'開啟':'關閉';
   $('tier').textContent=st.tier;
   $('loose').textContent=st.loose;
+  $('guide').textContent=GUIDE[st.guide]||GUIDE[2];
   $('storeMode').textContent=STORAGE;
   $('penJson').value=JSON.stringify(st);
   $('files').innerHTML='';
@@ -826,6 +951,8 @@ $('coop').onclick=()=>{st.coop=!st.coop;store.set(KEY,st);$('coop').textContent=
 $('tone').onclick=()=>{st.tone=!st.tone;store.set(KEY,st);$('tone').textContent=st.tone?'開啟':'關閉'};
 $('tier').onclick=()=>{st.tier=st.tier%3+1;store.set(KEY,st);$('tier').textContent=st.tier};
 $('loose').onclick=()=>{st.loose=st.loose%3+1;store.set(KEY,st);$('loose').textContent=st.loose};
+const GUIDE={1:'多',2:'中',3:'少'};
+$('guide').onclick=()=>{st.guide=st.guide%3+1;store.set(KEY,st);$('guide').textContent=GUIDE[st.guide]};
 $('reset').onclick=()=>{
   ORDER.forEach(k=>st.s[k]={lv:0,seen:0,ok:0,last:-99});
   WORDS.forEach(w=>st.w[w[4]]={seen:0,ok:0});
@@ -855,16 +982,16 @@ $('check').onclick=async()=>{
 
 /* ================= 10. 筆順錄製 ================= */
 const rpad=$('recPad'), rctx=rpad.getContext('2d');
-let ri=0, rStrokes=[], rCur=null, rSize={w:280,h:280};
+let ri=0, rStrokes=[], rCur=null, rSize={w:280,h:280}, rDirty=false;
 function openRec(){
   $('rec').hidden=false; ri=0; loadRec();
 }
 function loadRec(){
-  const sym=ORDER[ri];
-  rStrokes=(st.pen[sym]||[]).map(s=>s.map(p=>[...p]));
-  rCur=null; rSize=fitCanvas(rpad);
-  $('recInfo').innerHTML=`<span style="font-size:34px">${sym}</span>　${ri+1} / 37
-    ${st.pen[sym]?'<br>已錄過，重寫會覆蓋':''}`;
+  const sym=ORDER[ri], mine=st.pen[sym]&&st.pen[sym].length;
+  rStrokes=strokesOf(sym).map(s=>s.map(p=>[+p[0],+p[1]]));
+  rCur=null; rDirty=false; rSize=fitCanvas(rpad);
+  $('recInfo').innerHTML=`<span style="font-size:34px">${sym}</span>　${ri+1} / 37　${rStrokes.length} 畫
+    <br>${mine?'目前用你錄的':'目前用內建的'}，重寫會覆蓋`;
   drawRec();
 }
 function drawRec(){
@@ -874,9 +1001,13 @@ function drawRec(){
   rctx.beginPath(); rctx.moveTo(0,h/2); rctx.lineTo(w,h/2);
   rctx.moveTo(w/2,0); rctx.lineTo(w/2,h); rctx.stroke();
   rctx.setLineDash([]); rctx.globalAlpha=1;
-  rctx.fillStyle='#E3E0D6'; rctx.textAlign='center'; rctx.textBaseline='middle';
-  rctx.font=`${Math.round(Math.min(w,h)*.74)}px ${FONT}`;
-  rctx.fillText(ORDER[ri],w/2,h*.52);
+  // 底稿：內建筆順的字形，照著描比較好對位
+  rctx.strokeStyle='#E7E4D9'; rctx.lineWidth=Math.min(w,h)*.105;
+  rctx.lineCap='round'; rctx.lineJoin='round';
+  (PEN[ORDER[ri]]||[]).forEach(s=>{
+    rctx.beginPath(); rctx.moveTo(s[0][0]*w,s[0][1]*h);
+    s.forEach(p=>rctx.lineTo(p[0]*w,p[1]*h)); rctx.stroke();
+  });
   rctx.strokeStyle='#D93A3A'; rctx.lineWidth=Math.min(w,h)*.05; rctx.lineCap='round'; rctx.lineJoin='round';
   [...rStrokes,rCur].forEach((s,i)=>{
     if(!s||!s.length) return;
@@ -896,12 +1027,13 @@ rpad.addEventListener('pointermove',e=>{ if(!rCur) return; rCur.push(padPt(e,rpa
     if(Math.hypot(p[0]-l[0],p[1]-l[1])>.02) out.push(p) });
   if(out.length<2) out.push(rCur[rCur.length-1]);
   rStrokes.push(out.map(p=>[+p[0].toFixed(3),+p[1].toFixed(3)]));
-  rCur=null; drawRec();
+  rCur=null; rDirty=true; drawRec();
 }));
-$('recUndo').onclick=()=>{ rStrokes.pop(); drawRec() };
+$('recUndo').onclick=()=>{ rStrokes.pop(); rDirty=true; drawRec() };
+$('recBuiltin').onclick=()=>{ delete st.pen[ORDER[ri]]; store.set(KEY,st); loadRec() };
 $('recPrev').onclick=()=>{ ri=(ri+36)%37; loadRec() };
-$('recSave').onclick=()=>{
-  if(rStrokes.length) st.pen[ORDER[ri]]=rStrokes; store.set(KEY,st);
+$('recSave').onclick=()=>{        // 沒改過就只是翻頁，不會把內建值變成自訂
+  if(rDirty&&rStrokes.length){ st.pen[ORDER[ri]]=rStrokes; store.set(KEY,st) }
   ri=(ri+1)%37; loadRec();
 };
 $('openRec').onclick=openRec;
