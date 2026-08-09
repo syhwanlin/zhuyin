@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="注音練習">
+<meta name="theme-color" content="#FAF9F4">
+<meta name="format-detection" content="telephone=no">
+<title>注音練習</title>
+<style>
+  :root{
+    --paper:#FAF9F4; --grid:#8FB89A; --ink:#232A31; --ink-soft:#6C7680;
+    --red:#D93A3A; --warm:#FFE9A8; --line:rgba(35,42,49,.12); --tile:#FFFFFF;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0}
+  body{background:var(--paper);color:var(--ink);
+    font-family:"PingFang TC","Heiti TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+    display:flex;justify-content:center;overscroll-behavior:none;
+    user-select:none;-webkit-user-select:none;touch-action:manipulation;
+    -webkit-touch-callout:none;-webkit-text-size-adjust:100%}
+  #app{width:100%;max-width:520px;
+    padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 14px);
+    display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+
+  .top{display:flex;align-items:center;gap:10px;height:44px;flex:0 0 auto}
+  .gate,.back{width:34px;height:34px;flex:0 0 auto;border:none;background:none;padding:0;
+    display:grid;place-items:center;cursor:pointer;opacity:.45;transition:opacity .2s,transform .2s}
+  .gate.holding{opacity:1;transform:scale(.9)}
+  .dots{display:flex;gap:7px;flex:1 1 auto;justify-content:center}
+  .dot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--line);
+    transition:transform .26s cubic-bezier(.2,1.5,.4,1),background .2s,border-color .2s}
+  .dot.on{background:var(--red);border-color:var(--red);transform:scale(1.15)}
+
+  .stage{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:min(5vh,28px)}
+  .stage[hidden]{display:none}
+
+  .speaker{align-self:center;position:relative;width:min(38vw,150px);height:min(38vw,150px);
+    border-radius:50%;border:2.5px solid var(--ink);background:var(--warm);display:grid;
+    place-items:center;cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform 90ms,box-shadow 90ms}
+  .speaker.mini{width:64px;height:64px;box-shadow:0 3px 0 var(--ink)}
+  .speaker:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
+  .speaker svg{width:44%;height:44%}
+  .speaker .wave{opacity:0;transform-origin:14px 24px}
+  .speaker.playing .wave{animation:wave .9s ease-out infinite}
+  .speaker.playing .wave:nth-of-type(2){animation-delay:.14s}
+  @keyframes wave{0%{opacity:0;transform:scale(.6)}35%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+
+  .card{align-self:center;position:relative;width:min(46vw,180px);aspect-ratio:1;
+    border:2.5px solid var(--ink);background:#fff;box-shadow:0 4px 0 var(--ink);
+    display:grid;place-items:center;cursor:pointer;transition:transform 90ms,box-shadow 90ms}
+  .card:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
+  .card .emoji{font-size:min(26vw,104px);line-height:1}
+  .card .han{position:absolute;bottom:-2px;right:6px;font-size:26px;color:var(--red);
+    opacity:0;transition:opacity .3s}
+  .card.solved .han{opacity:1}
+  .card .spk{position:absolute;top:6px;left:8px;font-size:15px;opacity:.35}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .cell{position:relative;aspect-ratio:1;border:2px solid var(--grid);background:var(--tile);
+    padding:0;cursor:pointer;display:grid;place-items:center;overflow:hidden;transition:transform 90ms,opacity .2s}
+  .cell::before,.cell::after{content:"";position:absolute;opacity:.5}
+  .cell::before{left:0;right:0;top:50%;height:1px;
+    background:repeating-linear-gradient(to right,var(--grid) 0 5px,transparent 5px 11px)}
+  .cell::after{top:0;bottom:0;left:50%;width:1px;
+    background:repeating-linear-gradient(to bottom,var(--grid) 0 5px,transparent 5px 11px)}
+  .cell .zy{font-size:clamp(52px,17vw,86px);line-height:1;position:relative;z-index:1}
+  .cell:active{transform:scale(.96)}
+  .cell.dim{opacity:.28}
+  .cell.wrong{animation:nudge .26s ease}
+  @keyframes nudge{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+  .cell.locked{pointer-events:none}
+  .mark{position:absolute;inset:0;z-index:2;pointer-events:none}
+  .mark circle{fill:none;stroke:var(--red);stroke-width:5;stroke-linecap:round;
+    stroke-dasharray:270;stroke-dashoffset:270}
+  .mark.draw circle{animation:draw .42s cubic-bezier(.4,0,.2,1) forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+
+  .slots{display:flex;gap:10px;justify-content:center;align-items:center;position:relative}
+  .slot-b{width:min(19vw,78px);aspect-ratio:1;border:2px solid var(--grid);background:#fff;
+    display:grid;place-items:center;font-size:min(11vw,44px);cursor:pointer;position:relative}
+  .slot-b::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;opacity:.45;
+    background:repeating-linear-gradient(to right,var(--grid) 0 4px,transparent 4px 9px)}
+  .slot-b.tone{width:min(11vw,44px);border-style:dashed;font-size:min(8vw,32px)}
+  .slot-b.empty{background:#F3F2ED}
+  .slots.wrong{animation:nudge .26s ease}
+  .slots .mark circle{stroke-width:3.5;stroke-dasharray:300;stroke-dashoffset:300}
+  .bank{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+  .chip{aspect-ratio:1;border:1.5px solid var(--line);background:#fff;border-radius:8px;
+    font-size:min(9vw,34px);display:grid;place-items:center;cursor:pointer;
+    transition:transform 90ms,opacity .2s;font-family:inherit;color:inherit;padding:0}
+  .chip:active{transform:scale(.94)}
+  .chip.used{opacity:.25;pointer-events:none}
+
+  /* 描寫 */
+  .penwrap{align-self:center;position:relative;width:min(78vw,330px);aspect-ratio:1}
+  #pad{width:100%;height:100%;display:block;border:2.5px solid var(--ink);background:#fff;
+    box-shadow:0 4px 0 var(--ink);touch-action:none}
+  .penwrap .mark circle{stroke-width:4}
+  .penrow{display:flex;align-items:center;justify-content:center;gap:22px}
+  .icon{width:56px;height:56px;border-radius:50%;border:2px solid var(--ink);background:#fff;
+    display:grid;place-items:center;cursor:pointer;font-size:22px;padding:0;color:inherit}
+  .icon:active{transform:scale(.94)}
+  .icon.go{background:var(--warm);box-shadow:0 3px 0 var(--ink)}
+
+  .sheet{position:fixed;inset:0;background:var(--paper);z-index:20;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:24px}
+  .sheet[hidden]{display:none}
+  .stampcard{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:min(300px,80vw)}
+  .slot{aspect-ratio:1;border:1.5px dashed var(--line);border-radius:50%;display:grid;
+    place-items:center;font-size:26px;color:var(--red)}
+  .slot.filled{border-style:solid;border-color:var(--red);animation:pop .32s cubic-bezier(.2,1.6,.4,1) backwards}
+  @keyframes pop{from{transform:scale(0)}}
+  .bigbtn{border:2.5px solid var(--ink);background:var(--warm);color:var(--ink);font:inherit;
+    font-size:20px;padding:16px 44px;border-radius:999px;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+  .bigbtn:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
+  .hint{color:var(--ink-soft);font-size:14px;text-align:center;line-height:1.7}
+  .picker{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .pick{width:min(27vw,120px);aspect-ratio:3/4;border:2.5px solid var(--ink);background:#fff;
+    box-shadow:0 4px 0 var(--ink);display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:10px;cursor:pointer;font:inherit;color:inherit}
+  .pick:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
+  .pick .big{font-size:38px;line-height:1}
+  .pick .lbl{font-size:14px;color:var(--ink-soft);letter-spacing:.06em}
+
+  #parent,#rec{position:fixed;inset:0;background:var(--paper);z-index:30;overflow-y:auto;
+    padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 32px)}
+  #parent[hidden],#rec[hidden]{display:none}
+  .wrap{max-width:520px;margin:0 auto}
+  h2{font-size:17px;margin:26px 0 10px;letter-spacing:.06em;font-weight:600}
+  .stats{display:flex;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--ink-soft)}
+  .stats b{display:block;font-size:24px;color:var(--ink);font-weight:600;margin-bottom:2px}
+  .map{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .m{aspect-ratio:1;display:grid;place-items:center;font-size:19px;border-radius:5px;
+    border:1px solid var(--line);position:relative}
+  .m span{position:absolute;bottom:1px;right:3px;font-size:9px;color:var(--ink-soft)}
+  .m.has{box-shadow:inset 0 0 0 2px var(--red)}
+  .legend{font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.9}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;
+    margin-right:4px;border:1px solid var(--line)}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:13px 0;border-bottom:1px solid var(--line);font-size:15px}
+  .row p{margin:3px 0 0;font-size:12.5px;color:var(--ink-soft);line-height:1.6}
+  .sm{border:1.5px solid var(--ink);background:none;font:inherit;font-size:14px;
+    padding:8px 16px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  .sm.danger{border-color:var(--red);color:var(--red)}
+  .files{font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.9;
+    color:var(--ink-soft);word-break:break-all;margin-top:8px}
+  .ok{color:#2E7D4F}.bad{color:var(--red)}
+  code{font-size:12px;background:#EFEEE8;padding:1px 4px;border-radius:3px}
+  textarea{width:100%;height:110px;font-family:ui-monospace,Menlo,monospace;font-size:11px;
+    border:1px solid var(--line);border-radius:6px;padding:8px;background:#fff;color:var(--ink)}
+  #rec .padbox{width:min(70vw,280px);margin:14px auto}
+  #rec canvas{width:100%;aspect-ratio:1;display:block;border:2px solid var(--ink);background:#fff;touch-action:none}
+  .recbar{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap}
+  .recinfo{text-align:center;font-size:14px;color:var(--ink-soft);margin-top:10px;line-height:1.7}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+    .mark.draw circle{stroke-dashoffset:0}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top">
+    <button class="gate" id="gate" aria-label="家長模式（長按）">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v18" stroke-dasharray="3 3"/></svg>
+    </button>
+    <div class="dots" id="dots"></div>
+    <button class="back" id="back" aria-label="換一個玩法">
+      <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 12a8 8 0 1 1 2.5 5.8"/><path d="M4 8v4h4"/></svg>
+    </button>
+  </div>
+
+  <div class="stage" id="s-sym">
+    <button class="speaker" id="speaker" aria-label="再聽一次">
+      <svg viewBox="0 0 40 40" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round">
+        <path d="M6 15h6l8-6v22l-8-6H6z" fill="var(--ink)"/>
+        <path class="wave" d="M24 14c2.6 2.6 2.6 9.4 0 12"/>
+        <path class="wave" d="M29 10c4.6 4.6 4.6 15.4 0 20"/></svg>
+    </button>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="stage" id="s-mix" hidden>
+    <div class="card" id="card"><span class="spk">🔊</span>
+      <span class="emoji" id="emoji"></span><span class="han" id="han"></span></div>
+    <div class="slots" id="slots"></div>
+    <div class="bank" id="bank"></div>
+  </div>
+
+  <div class="stage" id="s-pen" hidden>
+    <div class="penwrap">
+      <canvas id="pad"></canvas>
+      <svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45"/></svg>
+    </div>
+    <div class="penrow">
+      <button class="icon" id="penClear" aria-label="重寫">↺</button>
+      <button class="speaker mini" id="penSpk" aria-label="再聽一次">
+        <svg viewBox="0 0 40 40" fill="none" stroke="var(--ink)" stroke-width="2.6" stroke-linejoin="round">
+          <path d="M6 15h6l8-6v22l-8-6H6z" fill="var(--ink)"/>
+          <path class="wave" d="M24 14c2.6 2.6 2.6 9.4 0 12"/></svg>
+      </button>
+      <button class="icon go" id="penDone" aria-label="寫好了">✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="start">
+  <div class="picker">
+    <button class="pick" id="pickSym"><span class="big">ㄅ</span><span class="lbl">聽音找字</span></button>
+    <button class="pick" id="pickMix"><span class="big">🐶</span><span class="lbl">看圖拼音</span></button>
+    <button class="pick" id="pickPen"><span class="big">✍️</span><span class="lbl">描寫練習</span></button>
+  </div>
+  <div class="hint">答對一題蓋一個章，集滿八個休息一下</div>
+</div>
+
+<div class="sheet" id="done" hidden>
+  <div class="stampcard" id="card8"></div>
+  <button class="bigbtn" id="again">再玩一次</button>
+  <div class="hint">收工也可以，隨時再來</div>
+</div>
+
+<div id="parent" hidden><div class="wrap">
+  <div class="row" style="border:none;padding-top:0">
+    <div style="font-size:19px;font-weight:600">家長模式</div>
+    <button class="sm" id="closeParent">回遊戲</button>
+  </div>
+
+  <h2>整體</h2>
+  <div class="stats" id="stats"></div>
+
+  <h2>每個符號的熟練度</h2>
+  <div class="map" id="map"></div>
+  <div class="legend">
+    <span class="sw" style="background:#fff"></span>還沒教到　
+    <span class="sw" style="background:#FFE0DE"></span>剛學、還會錯　
+    <span class="sw" style="background:#FFE9A8"></span>練習中　
+    <span class="sw" style="background:#CDE8D5"></span>穩了<br>
+    紅框表示這個符號已經有你錄的筆順。
+  </div>
+
+  <h2>描寫練習</h2>
+  <div class="row">
+    <div>寬鬆度
+      <p>1 最嚴、3 最鬆。手指比筆粗很多，小小孩建議 3。</p>
+    </div>
+    <button class="sm" id="loose">2</button>
+  </div>
+  <div class="row">
+    <div>錄製筆順
+      <p>對照教育部筆順學習網，自己照著寫一次，之後小孩描寫時會先看到示範。
+         沒錄也能玩，只是沒有筆順引導。</p>
+    </div>
+    <button class="sm" id="openRec">開始錄</button>
+  </div>
+
+  <h2>看圖拼音</h2>
+  <div class="row">
+    <div>難度<p>1 = 兩拼／2 = 加介音或零聲母／3 = 全部。</p></div>
+    <button class="sm" id="tier">1</button>
+  </div>
+  <div class="row">
+    <div>要不要選聲調<p>先關掉，等兩拼穩了再開。</p></div>
+    <button class="sm" id="tone">關閉</button>
+  </div>
+
+  <h2>一起玩</h2>
+  <div class="row">
+    <div>輪流答題<p>大人小孩交替，一起集章，不比分數。</p></div>
+    <button class="sm" id="coop">關閉</button>
+  </div>
+
+  <h2>語音檔</h2>
+  <div class="row">
+    <div>檢查音檔
+      <p>符號音放 <code>audio/</code>，語詞音放 <code>audio/w/</code>。</p></div>
+    <button class="sm" id="check">檢查</button>
+  </div>
+  <div class="files" id="files"></div>
+
+  <h2>備份</h2>
+  <div class="row" style="border:none;flex-wrap:wrap">
+    <div style="flex-basis:100%">全部進度（含筆順）
+      <p>目前存放方式：<b id="storeMode"></b>。
+         若顯示「記憶體」表示這個開啟方式存不住，請改用網址開啟；
+         在那之前可以把下面這段複製起來，換裝置時貼回去按匯入。</p></div>
+    <textarea id="penJson" placeholder="進度 JSON"></textarea>
+    <button class="sm" id="penImport" style="margin-top:8px">匯入</button>
+  </div>
+
+  <h2>重來</h2>
+  <div class="row" style="border:none">
+    <div>清除學習進度<p>熟練度歸零，筆順資料保留。</p></div>
+    <button class="sm danger" id="reset">清除</button>
+  </div>
+</div></div>
+
+<div id="rec" hidden><div class="wrap">
+  <div class="row" style="border:none;padding-top:0">
+    <div style="font-size:19px;font-weight:600">錄製筆順</div>
+    <button class="sm" id="closeRec">完成</button>
+  </div>
+  <div class="recinfo" id="recInfo"></div>
+  <div class="padbox"><canvas id="recPad"></canvas></div>
+  <div class="recbar">
+    <button class="sm" id="recPrev">← 上一個</button>
+    <button class="sm" id="recUndo">退一筆</button>
+    <button class="sm" id="recSave">存並下一個 →</button>
+  </div>
+  <div class="recinfo">一筆一筆照標準筆順寫。抬起手指算一筆。<br>
+    筆順請對照教育部「國字標準字體筆順學習網」的注音筆順查詢。</div>
+</div></div>
+
+<script>
+/* ================= 1. 資料 ================= */
+const DATA=[
+  ['ㄅ','b','c','波'],['ㄆ','p','c','坡'],['ㄇ','m','c','摸'],['ㄈ','f','c','佛'],
+  ['ㄉ','d','c','得'],['ㄊ','t','c','特'],['ㄋ','n','c','呢'],['ㄌ','l','c','勒'],
+  ['ㄍ','g','c','哥'],['ㄎ','k','c','科'],['ㄏ','h','c','喝'],
+  ['ㄐ','j','c','雞'],['ㄑ','q','c','七'],['ㄒ','x','c','西'],
+  ['ㄓ','zh','c','知'],['ㄔ','ch','c','吃'],['ㄕ','sh','c','師'],['ㄖ','r','c','日'],
+  ['ㄗ','z','c','資'],['ㄘ','ts','c','雌'],['ㄙ','s','c','思'],
+  ['ㄚ','a','v','啊'],['ㄛ','o','v','喔'],['ㄜ','e','v','惡'],['ㄝ','eh','v','耶'],
+  ['ㄞ','ai','v','哀'],['ㄟ','ei','v','誒'],['ㄠ','ao','v','凹'],['ㄡ','ou','v','歐'],
+  ['ㄢ','an','v','安'],['ㄣ','en','v','恩'],['ㄤ','ang','v','骯'],['ㄥ','eng','v','鞥'],
+  ['ㄦ','er','v','兒'],['ㄧ','i','v','衣'],['ㄨ','u','v','烏'],['ㄩ','yu','v','迂']];
+const SYM={}; DATA.forEach(([s,f,t,tts])=>SYM[s]={s,file:f,type:t,tts});
+
+const ORDER=['ㄅ','ㄚ','ㄇ','ㄛ','ㄉ','ㄧ','ㄆ','ㄨ','ㄋ','ㄜ','ㄍ','ㄞ','ㄈ','ㄠ',
+             'ㄊ','ㄩ','ㄌ','ㄢ','ㄎ','ㄟ','ㄏ','ㄡ','ㄐ','ㄣ','ㄒ','ㄤ','ㄓ','ㄥ',
+             'ㄗ','ㄦ','ㄔ','ㄝ','ㄘ','ㄑ','ㄕ','ㄙ','ㄖ'];
+const CONFUSE=[['ㄅ','ㄆ'],['ㄇ','ㄈ'],['ㄉ','ㄊ'],['ㄋ','ㄌ'],['ㄍ','ㄎ'],
+  ['ㄐ','ㄑ','ㄒ'],['ㄓ','ㄔ','ㄕ'],['ㄗ','ㄘ','ㄙ'],['ㄊ','ㄦ'],['ㄡ','ㄩ'],
+  ['ㄨ','ㄩ'],['ㄛ','ㄜ'],['ㄢ','ㄣ'],['ㄤ','ㄥ'],['ㄞ','ㄟ'],['ㄠ','ㄡ']];
+const near=s=>[...new Set(CONFUSE.filter(g=>g.includes(s)).flat())].filter(x=>x!==s);
+
+const WORDS=[
+  ['🐱','貓',['ㄇ','ㄠ'],1,'mao1',1],['🐶','狗',['ㄍ','ㄡ'],3,'gou3',1],
+  ['🐴','馬',['ㄇ','ㄚ'],3,'ma3',1],['🐷','豬',['ㄓ','ㄨ'],1,'zhu1',1],
+  ['🐰','兔',['ㄊ','ㄨ'],4,'tu4',1],['🐔','雞',['ㄐ','ㄧ'],1,'ji1',1],
+  ['🐍','蛇',['ㄕ','ㄜ'],2,'she2',1],['🐝','蜂',['ㄈ','ㄥ'],1,'feng1',1],
+  ['⛰️','山',['ㄕ','ㄢ'],1,'shan1',1],['🚗','車',['ㄔ','ㄜ'],1,'che1',1],
+  ['🍵','茶',['ㄔ','ㄚ'],2,'cha2',1],['🥚','蛋',['ㄉ','ㄢ'],4,'dan4',1],
+  ['🍬','糖',['ㄊ','ㄤ'],2,'tang2',1],['🍚','飯',['ㄈ','ㄢ'],4,'fan4',1],
+  ['☂️','傘',['ㄙ','ㄢ'],3,'san3',1],['🧢','帽',['ㄇ','ㄠ'],4,'mao4',1],
+  ['🔪','刀',['ㄉ','ㄠ'],1,'dao1',1],['📖','書',['ㄕ','ㄨ'],1,'shu1',1],
+  ['🖐️','手',['ㄕ','ㄡ'],3,'shou3',1],['🚪','門',['ㄇ','ㄣ'],2,'men2',1],
+  ['💡','燈',['ㄉ','ㄥ'],1,'deng1',1],['🌱','草',['ㄘ','ㄠ'],3,'cao3',1],
+  ['🌳','樹',['ㄕ','ㄨ'],4,'shu4',1],['👂','耳',['ㄦ'],3,'er3',1],
+  ['🌸','花',['ㄏ','ㄨ','ㄚ'],1,'hua1',2],['🔥','火',['ㄏ','ㄨ','ㄛ'],3,'huo3',2],
+  ['💧','水',['ㄕ','ㄨ','ㄟ'],3,'shui3',2],['🐦','鳥',['ㄋ','ㄧ','ㄠ'],3,'niao3',2],
+  ['🐘','象',['ㄒ','ㄧ','ㄤ'],4,'xiang4',2],['🦶','腳',['ㄐ','ㄧ','ㄠ'],3,'jiao3',2],
+  ['👃','鼻',['ㄅ','ㄧ'],2,'bi2',2],['🍪','餅',['ㄅ','ㄧ','ㄥ'],3,'bing3',2],
+  ['⚽','球',['ㄑ','ㄧ','ㄡ'],2,'qiu2',2],['👟','鞋',['ㄒ','ㄧ','ㄝ'],2,'xie2',2],
+  ['⭐','星',['ㄒ','ㄧ','ㄥ'],1,'xing1',2],['🐟','魚',['ㄩ'],2,'yu2',2],
+  ['🌧️','雨',['ㄩ'],3,'yu3',2],['🌙','月',['ㄩ','ㄝ'],4,'yue4',2],
+  ['🐑','羊',['ㄧ','ㄤ'],2,'yang2',2],['🦆','鴨',['ㄧ','ㄚ'],1,'ya1',2],
+  ['👀','眼',['ㄧ','ㄢ'],3,'yan3',2],['🍃','葉',['ㄧ','ㄝ'],4,'ye4',2],
+  ['❄️','雪',['ㄒ','ㄩ','ㄝ'],3,'xue3',3],['🐻','熊',['ㄒ','ㄩ','ㄥ'],2,'xiong2',3],
+  ['🚢','船',['ㄔ','ㄨ','ㄢ'],2,'chuan2',3],['🛏️','床',['ㄔ','ㄨ','ㄤ'],2,'chuang2',3]];
+const TONE=['','ˊ','ˇ','ˋ'];
+
+/* ================= 2. 儲存 =================
+   自架時把下面兩個函式換成 localStorage 即可 */
+let STORAGE='記憶體（重開會歸零）';
+const store=(()=>{
+  const mem={};
+  let ls=null;
+  try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t'); ls=localStorage;
+       STORAGE='localStorage'; }catch(e){}          // file:// 下 Safari 會擋，就走下面
+  const api=(!ls&&typeof window!=='undefined'&&window.storage)?window.storage:null;
+  if(api) STORAGE='內建儲存';
+  return{
+    async get(k){
+      if(ls){ try{ const v=ls.getItem(k); return v?JSON.parse(v):null }catch(e){} }
+      if(api){ try{ const r=await api.get(k); return r?JSON.parse(r.value):null }catch(e){} }
+      return mem[k]??null;
+    },
+    async set(k,v){
+      mem[k]=v;
+      if(ls){ try{ ls.setItem(k,JSON.stringify(v)); return }catch(e){} }
+      if(api){ try{ await api.set(k,JSON.stringify(v)) }catch(e){} }
+    }
+  };
+})();
+const KEY='zhuyin.progress.v3';
+
+/* ================= 3. 熟練度 ================= */
+const GAP=[0,0,1,3,8,20], MAXNEW=4, ROUND=8;
+let st={n:0,coop:false,tier:1,tone:false,loose:2,s:{},w:{},pen:{}};
+ORDER.forEach(k=>st.s[k]={lv:0,seen:0,ok:0,last:-99});
+WORDS.forEach(w=>st.w[w[4]]={seen:0,ok:0});
+
+const introduced=()=>ORDER.filter(k=>st.s[k].lv>0);
+const learning=()=>introduced().filter(k=>st.s[k].lv<4);
+const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(p=>p[1]);
+
+function nextSymbol(){
+  let pool=introduced().filter(k=>st.s[k].lv<5&&(st.n-st.s[k].last)>=GAP[st.s[k].lv]);
+  if(pool.length<2&&learning().length<MAXNEW){
+    const nxt=ORDER.find(k=>st.s[k].lv===0);
+    if(nxt){st.s[nxt].lv=1;pool.push(nxt)}
+  }
+  if(!pool.length) pool=introduced().sort((a,b)=>st.s[a].last-st.s[b].last).slice(0,4);
+  pool.sort((a,b)=>(st.s[a].lv-st.s[b].lv)||(st.s[a].last-st.s[b].last));
+  const ans=pool[Math.floor(Math.random()*Math.min(2,pool.length))];
+  const seen=introduced().filter(k=>k!==ans), opts=[ans];
+  if(st.s[ans].lv>=3) shuffle(near(ans).filter(k=>seen.includes(k))).slice(0,2).forEach(k=>opts.push(k));
+  const same=shuffle(seen.filter(k=>SYM[k].type===SYM[ans].type&&!opts.includes(k)));
+  const rest=shuffle(seen.filter(k=>!opts.includes(k)));
+  const fill=shuffle(ORDER.filter(k=>!opts.includes(k)));
+  [...same,...rest,...fill].forEach(k=>{if(opts.length<4&&!opts.includes(k))opts.push(k)});
+  return {ans,opts:shuffle(opts)};
+}
+function gradeSymbol(sym,ok){
+  const r=st.s[sym]; r.seen++; r.last=st.n;
+  if(ok){r.ok++;r.lv=Math.min(5,r.lv+1)} else {r.lv=Math.max(1,r.lv-1)}
+  st.n++; store.set(KEY,st);
+}
+
+/* ================= 4. 聲音 ================= */
+const DIR='./audio/', WDIR='./audio/w/', EXT='mp3';
+const cache={};
+function ring(on){ document.querySelectorAll('.speaker').forEach(e=>e.classList.toggle('playing',on)) }
+function playFile(src,fb){
+  ring(true);
+  let a=cache[src]; if(!a) a=cache[src]=new Audio(src);
+  a.currentTime=0; a.onended=()=>ring(false);
+  a.play().catch(()=>{ speak(fb); setTimeout(()=>ring(false),900) });
+}
+const playSym=s=>playFile(DIR+SYM[s].file+'.'+EXT,SYM[s].tts);
+const playWord=w=>playFile(WDIR+w[4]+'.'+EXT,w[1]);
+function speak(t){ try{ speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t); u.lang='zh-TW'; u.rate=.75; speechSynthesis.speak(u) }catch(e){} }
+
+/* ================= 5. 共用畫面 ================= */
+const $=id=>document.getElementById(id);
+let mode='sym', q=null, marks=0, busy=false, word=null, need=[], filled=[];
+function dots(){ $('dots').innerHTML=Array.from({length:ROUND},(_,i)=>
+  `<div class="dot ${i<marks?'on':''}"></div>`).join('') }
+function score(){
+  marks++; dots();
+  setTimeout(()=>{ marks>=ROUND?finish():ask() },900);
+}
+const stamps=n=>Array.from({length:ROUND},(_,i)=>
+  `<div class="slot ${i<n?'filled':''}" style="animation-delay:${i*70}ms">${i<n?'○':''}</div>`).join('');
+function finish(){ $('card8').innerHTML=stamps(ROUND); $('done').hidden=false }
+function ask(){ mode==='sym'?askSym():mode==='mix'?askMix():askPen() }
+function newRound(){
+  marks=0; $('done').hidden=true;
+  $('s-sym').hidden=mode!=='sym'; $('s-mix').hidden=mode!=='mix'; $('s-pen').hidden=mode!=='pen';
+  ask();
+}
+/* iOS 一定要在使用者手勢裡先解鎖，音訊和語音都是 */
+const SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+function unlock(){
+  try{ const a=new Audio(SILENT); a.volume=0; a.play().catch(()=>{}) }catch(e){}
+  try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; u.lang='zh-TW';
+       speechSynthesis.speak(u) }catch(e){}
+}
+async function begin(m){
+  unlock();
+  const saved=await store.get(KEY); if(saved&&saved.s) st=Object.assign(st,saved);
+  mode=m; $('start').hidden=true; newRound();
+}
+$('pickSym').onclick=()=>begin('sym');
+$('pickMix').onclick=()=>begin('mix');
+$('pickPen').onclick=()=>begin('pen');
+$('again').onclick=newRound;
+$('back').onclick=()=>{ $('done').hidden=true; $('start').hidden=false };
+
+/* ================= 6. 玩法一 ================= */
+function askSym(){
+  q=nextSymbol(); busy=false;
+  $('grid').innerHTML=q.opts.map(s=>
+    `<button class="cell" data-s="${s}"><span class="zy">${s}</span>
+     <svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="43"/></svg></button>`).join('');
+  dots(); setTimeout(()=>playSym(q.ans),260);
+}
+$('grid').addEventListener('click',e=>{
+  const c=e.target.closest('.cell'); if(!c||busy) return;
+  if(c.dataset.s!==q.ans){
+    c.classList.add('wrong','dim','locked'); gradeSymbol(q.ans,false);
+    setTimeout(()=>playSym(q.ans),320); return;
+  }
+  busy=true; gradeSymbol(q.ans,true);
+  c.querySelector('.mark').classList.add('draw');
+  document.querySelectorAll('.cell').forEach(x=>{x.classList.add('locked');if(x!==c)x.classList.add('dim')});
+  score();
+});
+$('speaker').onclick=()=>{ if(mode==='sym'&&q) playSym(q.ans) };
+
+/* ================= 7. 玩法二 ================= */
+function pickWord(){
+  const pool=WORDS.filter(w=>w[5]<=st.tier);
+  return shuffle(pool).sort((a,b)=>st.w[a[4]].seen-st.w[b[4]].seen)[0]||pool[0];
+}
+function askMix(){
+  word=pickWord(); busy=false;
+  need=[...word[2]]; if(st.tone) need.push(TONE[word[3]-1]||'—');
+  filled=[];
+  $('emoji').textContent=word[0]; $('han').textContent=word[1];
+  $('card').classList.remove('solved');
+  const bank=new Set(word[2]);
+  word[2].forEach(s=>near(s).forEach(n=>{ if(bank.size<7) bank.add(n) }));
+  shuffle(ORDER).forEach(s=>{ if(bank.size<8) bank.add(s) });
+  let chips=shuffle([...bank]);
+  if(st.tone) chips=[...chips.slice(0,6),...TONE.map(t=>t||'—')];
+  drawSlots();
+  $('bank').innerHTML=chips.map(s=>`<button class="chip" data-s="${s}">${s}</button>`).join('');
+  dots(); setTimeout(()=>playWord(word),300);
+}
+function drawSlots(){
+  const isTone=i=>st.tone&&i===need.length-1;
+  $('slots').innerHTML=need.map((_,i)=>
+    `<div class="slot-b ${isTone(i)?'tone':''} ${filled[i]?'':'empty'}">${filled[i]||''}</div>`).join('')
+    +`<svg class="mark" viewBox="0 0 100 100" style="inset:-6px"><circle cx="50" cy="50" r="43"/></svg>`;
+}
+$('bank').addEventListener('click',e=>{
+  const c=e.target.closest('.chip'); if(!c||busy||filled.length>=need.length) return;
+  filled.push(c.dataset.s); c.classList.add('used'); drawSlots();
+  if(filled.length===need.length) checkMix();
+});
+$('slots').addEventListener('click',()=>{
+  if(busy||!filled.length) return;
+  filled.pop(); drawSlots();
+  [...document.querySelectorAll('.chip.used')].pop()?.classList.remove('used');
+});
+function checkMix(){
+  const rec=st.w[word[4]]; rec.seen++;
+  if(!need.every((v,i)=>filled[i]===v)){
+    $('slots').classList.add('wrong');
+    let keep=0; while(keep<need.length&&filled[keep]===need[keep]) keep++;
+    setTimeout(()=>{
+      $('slots').classList.remove('wrong');
+      const drop=filled.length-keep; filled=filled.slice(0,keep); drawSlots();
+      [...document.querySelectorAll('.chip.used')].slice(-drop).forEach(c=>c.classList.remove('used'));
+      playWord(word);
+    },420);
+    word[2].forEach(s=>{const r=st.s[s]; if(r.lv>1) r.lv--});
+    store.set(KEY,st); return;
+  }
+  busy=true; rec.ok++;
+  word[2].forEach(s=>{const r=st.s[s]; r.seen++; r.ok++; r.lv=Math.min(5,Math.max(r.lv,1)+1); r.last=st.n});
+  st.n++; store.set(KEY,st);
+  $('card').classList.add('solved');
+  $('slots').querySelector('.mark').classList.add('draw');
+  score();
+}
+$('card').onclick=()=>{ if(word) playWord(word) };
+
+/* ================= 8. 玩法三：描寫 =================
+   形狀不是我硬寫的座標，是直接從系統字型的字面取出來的，
+   所以字形一定對；筆順則來自家長錄製（可留空）。
+   ============================================================ */
+const pad=$('pad'), pctx=pad.getContext('2d');
+const FONT='"PingFang TC","Heiti TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif';
+let penSym=null, strokes=[], cur=null, penBusy=false, guiding=false, tries=0;
+
+function fitCanvas(cv){
+  const r=cv.getBoundingClientRect(), d=Math.min(devicePixelRatio||1,2.5);
+  cv.width=Math.round(r.width*d); cv.height=Math.round(r.height*d);
+  const c=cv.getContext('2d'); c.setTransform(d,0,0,d,0,0);
+  return {w:r.width,h:r.height};
+}
+/* 字面遮罩：size×size 的 0/1 陣列。grow>0 會把字往外撐開，當作容錯範圍 */
+function glyphMask(sym,size,grow){
+  const c=document.createElement('canvas'); c.width=c.height=size;
+  const x=c.getContext('2d');
+  x.textAlign='center'; x.textBaseline='middle';
+  x.font=`${Math.round(size*.74)}px ${FONT}`;
+  if(grow>0){ x.lineWidth=grow*2; x.lineJoin='round'; x.strokeStyle='#000'; x.strokeText(sym,size/2,size*.52) }
+  x.fillStyle='#000'; x.fillText(sym,size/2,size*.52);
+  const d=x.getImageData(0,0,size,size).data, m=new Uint8Array(size*size);
+  for(let i=0;i<m.length;i++) m[i]=d[i*4+3]>60?1:0;
+  return m;
+}
+function inkMask(list,size,width){
+  const c=document.createElement('canvas'); c.width=c.height=size;
+  const x=c.getContext('2d');
+  x.strokeStyle='#000'; x.lineWidth=width; x.lineCap='round'; x.lineJoin='round';
+  list.forEach(s=>{
+    if(s.length<2){ x.beginPath(); x.arc(s[0][0]*size,s[0][1]*size,width/2,0,7); x.fillStyle='#000'; x.fill(); return }
+    x.beginPath(); x.moveTo(s[0][0]*size,s[0][1]*size);
+    s.forEach(p=>x.lineTo(p[0]*size,p[1]*size)); x.stroke();
+  });
+  const d=x.getImageData(0,0,size,size).data, m=new Uint8Array(size*size);
+  for(let i=0;i<m.length;i++) m[i]=d[i*4+3]>60?1:0;
+  return m;
+}
+/* 逐筆判定：每寫完一筆就檢查，不必事先知道筆順
+   1. 這一筆有沒有壓在字面上（沒有 → 退回，不留痕跡）
+   2. 這一筆有沒有描到「還沒描過」的部分（沒有 → 重複描，退回）
+   3. 累積覆蓋率到門檻就自動算完成 */
+const N=160;
+let penTight=null,penLoose=null,penCovered=null,penTT=0,penL=0;
+let hint=null,hintOn=false,hintT=null,pulse=null,badStroke=null;
+const tolPx =()=>[0,.10,.14,.19][st.loose]*N;
+const needCv=()=>[0,.82,.74,.66][st.loose];
+const allowOv=()=>[0,.20,.30,.42][st.loose];
+
+function prepPen(sym){
+  penL=tolPx();
+  penTight=glyphMask(sym,N,0);
+  penLoose=glyphMask(sym,N,penL);
+  penCovered=new Uint8Array(N*N);
+  penTT=0; for(let i=0;i<penTight.length;i++) if(penTight[i]) penTT++;
+}
+function coverage(){
+  let c=0; for(let i=0;i<penTight.length;i++) if(penTight[i]&&penCovered[i]) c++;
+  return penTT?c/penTT:0;
+}
+function judgeStroke(s){
+  const thick=inkMask([s],N,penL*1.5), thin=inkMask([s],N,Math.max(4,penL*.7));
+  let io=0,it=0,gain=0,rem=0;
+  for(let i=0;i<penTight.length;i++){
+    if(thin[i]){ it++; if(!penLoose[i]) io++ }
+    if(penTight[i]&&!penCovered[i]){ rem++; if(thick[i]) gain++ }
+  }
+  if(it && io/it>allowOv()) return false;                 // 畫到框外太多
+  if(rem && gain<Math.max(rem*.05,penTT*.04)) return false; // 沒描到新的地方
+  for(let i=0;i<penTight.length;i++) if(thick[i]) penCovered[i]=1;
+  return true;
+}
+/* 還沒描到的部分切成連通塊，依筆順基本法則「由上而下、由左而右」挑下一塊的起點 */
+function nextHint(){
+  const rem=new Uint8Array(N*N); let any=false;
+  for(let i=0;i<penTight.length;i++) if(penTight[i]&&!penCovered[i]){ rem[i]=1; any=true }
+  if(!any) return null;
+  const seen=new Uint8Array(N*N); let best=null;
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){
+    const i0=y*N+x; if(!rem[i0]||seen[i0]) continue;
+    const q=[i0]; seen[i0]=1;
+    let head=0,size=0,top=null;
+    while(head<q.length){
+      const p=q[head++]; size++;
+      const py=(p/N)|0, px=p%N;
+      if(!top||py<top[1]||(py===top[1]&&px<top[0])) top=[px,py];
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+        const nx=px+dx, ny=py+dy;
+        if(nx<0||ny<0||nx>=N||ny>=N) continue;
+        const np=ny*N+nx;
+        if(rem[np]&&!seen[np]){ seen[np]=1; q.push(np) }
+      }
+    }
+    if(size<penTT*.06) continue;                          // 碎屑不算一筆
+    if(!best||top[1]<best[1]||(top[1]===best[1]&&top[0]<best[0])) best=top;
+  }
+  return best?[(best[0]+.5)/N,(best[1]+.5)/N]:null;
+}
+function armHint(){
+  clearTimeout(hintT); clearInterval(pulse); hintOn=false; redrawPad();
+  hintT=setTimeout(()=>{
+    hint=nextHint(); if(!hint) return;
+    hintOn=true; redrawPad();
+    pulse=setInterval(()=>{ hintOn=!hintOn; redrawPad() },560);
+  },2200);
+}
+function stopHint(){ clearTimeout(hintT); clearInterval(pulse); hintOn=false }
+function redrawPad(){
+  const {w,h}=padSize;
+  pctx.clearRect(0,0,w,h);
+  // 田字格
+  pctx.strokeStyle='#8FB89A'; pctx.globalAlpha=.5; pctx.lineWidth=1;
+  pctx.setLineDash([5,6]);
+  pctx.beginPath(); pctx.moveTo(0,h/2); pctx.lineTo(w,h/2);
+  pctx.moveTo(w/2,0); pctx.lineTo(w/2,h); pctx.stroke();
+  pctx.setLineDash([]); pctx.globalAlpha=1;
+  // 描紅
+  if(penSym){
+    pctx.fillStyle='#E3E0D6'; pctx.textAlign='center'; pctx.textBaseline='middle';
+    pctx.font=`${Math.round(Math.min(w,h)*.74)}px ${FONT}`;
+    pctx.fillText(penSym,w/2,h*.52);
+  }
+  // 筆順引導：起筆點編號
+  const g=st.pen[penSym];
+  if(g&&!guiding){
+    g.forEach((s,i)=>{
+      const p=s[0]; pctx.fillStyle='rgba(217,58,58,.75)';
+      pctx.beginPath(); pctx.arc(p[0]*w,p[1]*h,9,0,7); pctx.fill();
+      pctx.fillStyle='#fff'; pctx.font='11px '+FONT;
+      pctx.textAlign='center'; pctx.textBaseline='middle';
+      pctx.fillText(i+1,p[0]*w,p[1]*h);
+    });
+  }
+  // 下一筆從哪裡起筆
+  if(hint&&hintOn&&!guiding){
+    pctx.strokeStyle='rgba(217,58,58,.85)'; pctx.lineWidth=3;
+    pctx.beginPath(); pctx.arc(hint[0]*w,hint[1]*h,13,0,7); pctx.stroke();
+    pctx.fillStyle='rgba(217,58,58,.85)';
+    pctx.beginPath(); pctx.arc(hint[0]*w,hint[1]*h,4.5,0,7); pctx.fill();
+  }
+  // 小孩的筆跡
+  pctx.strokeStyle='#232A31'; pctx.lineWidth=Math.min(w,h)*.055;
+  pctx.lineCap='round'; pctx.lineJoin='round';
+  [...strokes,cur].forEach(s=>{
+    if(!s||!s.length) return;
+    pctx.beginPath(); pctx.moveTo(s[0][0]*w,s[0][1]*h);
+    s.forEach(p=>pctx.lineTo(p[0]*w,p[1]*h)); pctx.stroke();
+  });
+  // 被退回的那一筆，紅色閃一下
+  if(badStroke&&badStroke.length){
+    pctx.strokeStyle='rgba(217,58,58,.6)';
+    pctx.beginPath(); pctx.moveTo(badStroke[0][0]*w,badStroke[0][1]*h);
+    badStroke.forEach(p=>pctx.lineTo(p[0]*w,p[1]*h)); pctx.stroke();
+  }
+}
+let padSize={w:300,h:300};
+function askPen(){
+  penSym=nextSymbol().ans; strokes=[]; cur=null; penBusy=false; tries=0;
+  badStroke=null; hint=null; stopHint();
+  document.querySelector('#s-pen .mark').classList.remove('draw');
+  padSize=fitCanvas(pad); prepPen(penSym);
+  dots(); redrawPad();
+  setTimeout(()=>{ playSym(penSym); showGuide(); armHint() },260);
+}
+/* 有筆順資料就先播一次示範 */
+function showGuide(){
+  const g=st.pen[penSym]; if(!g||!g.length) return;
+  guiding=true; penBusy=true;
+  const {w,h}=padSize; let si=0,t0=null;
+  const step=(ts)=>{
+    if(!t0) t0=ts;
+    const dur=520, k=Math.min(1,(ts-t0)/dur);
+    redrawPad();
+    pctx.strokeStyle='rgba(217,58,58,.55)'; pctx.lineWidth=Math.min(w,h)*.05;
+    pctx.lineCap='round';
+    for(let i=0;i<=si;i++){
+      const s=g[i]; if(!s) continue;
+      const upto=i<si?s.length:Math.max(2,Math.round(s.length*k));
+      pctx.beginPath(); pctx.moveTo(s[0][0]*w,s[0][1]*h);
+      for(let j=1;j<upto;j++) pctx.lineTo(s[j][0]*w,s[j][1]*h);
+      pctx.stroke();
+    }
+    if(k<1){ requestAnimationFrame(step) }
+    else if(si<g.length-1){ si++; t0=null; requestAnimationFrame(step) }
+    else { guiding=false; penBusy=false; redrawPad() }
+  };
+  requestAnimationFrame(step);
+}
+function padPt(e,cv){
+  const r=cv.getBoundingClientRect();
+  return [(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height];
+}
+pad.addEventListener('pointerdown',e=>{
+  if(penBusy) return;
+  stopHint(); pad.setPointerCapture(e.pointerId); cur=[padPt(e,pad)]; redrawPad();
+});
+pad.addEventListener('pointermove',e=>{ if(!cur) return; cur.push(padPt(e,pad)); redrawPad() });
+['pointerup','pointercancel'].forEach(t=>pad.addEventListener(t,()=>{
+  if(!cur) return;
+  const s=cur; cur=null;
+  if(s.length<2) s.push([s[0][0]+.001,s[0][1]+.001]);
+  if(!judgeStroke(s)){                      // 這一筆不算，退回去
+    tries++; badStroke=s; redrawPad();
+    setTimeout(()=>{
+      badStroke=null; redrawPad();
+      if(tries>=2&&st.pen[penSym]) showGuide(); else armHint();
+    },420);
+    return;
+  }
+  tries=0; strokes.push(s); redrawPad();
+  if(coverage()>=needCv()) finishPen(); else armHint();
+}));
+function finishPen(){
+  penBusy=true; stopHint();
+  gradeSymbol(penSym,true);
+  document.querySelector('#s-pen .mark').classList.add('draw');
+  score();
+}
+$('penClear').onclick=()=>{
+  if(penBusy) return;
+  strokes=[]; cur=null; badStroke=null; tries=0; prepPen(penSym); armHint(); redrawPad();
+};
+$('penSpk').onclick=()=>{ if(penSym) playSym(penSym) };
+$('penDone').onclick=()=>{      // 寫完但還差一點，讓他自己按算完成
+  if(penBusy||!strokes.length) return;
+  if(coverage()>=needCv()*.9) return finishPen();
+  document.querySelector('.penwrap').animate(
+    [{transform:'translateX(0)'},{transform:'translateX(-7px)'},{transform:'translateX(7px)'},{transform:'translateX(0)'}],
+    {duration:280});
+  hint=nextHint(); hintOn=true; redrawPad();
+};
+
+/* ================= 9. 家長模式 ================= */
+let hold=null; const gate=$('gate');
+gate.addEventListener('pointerdown',e=>{e.preventDefault();gate.classList.add('holding');hold=setTimeout(openParent,1200)});
+['pointerup','pointerleave','pointercancel'].forEach(t=>
+  gate.addEventListener(t,()=>{gate.classList.remove('holding');clearTimeout(hold)}));
+
+function openParent(){
+  gate.classList.remove('holding'); clearTimeout(hold);
+  $('map').innerHTML=ORDER.map(k=>{
+    const r=st.s[k];
+    const bg=r.lv===0?'#fff':r.lv<=1?'#FFE0DE':r.lv<4?'#FFE9A8':'#CDE8D5';
+    return `<div class="m ${st.pen[k]?'has':''}" style="background:${bg}">${k}<span>${r.lv||''}</span></div>`;
+  }).join('');
+  const seen=ORDER.filter(k=>st.s[k].seen>0);
+  const tot=seen.reduce((a,k)=>a+st.s[k].seen,0), ok=seen.reduce((a,k)=>a+st.s[k].ok,0);
+  const solid=ORDER.filter(k=>st.s[k].lv>=4).length;
+  const weak=seen.filter(k=>st.s[k].lv<=2).sort((a,b)=>st.s[a].lv-st.s[b].lv).slice(0,6);
+  const wt=Object.values(st.w).reduce((a,r)=>a+r.seen,0), wo=Object.values(st.w).reduce((a,r)=>a+r.ok,0);
+  $('stats').innerHTML=`
+    <div><b>${solid}/37</b>符號已經穩了</div>
+    <div><b>${tot?Math.round(ok/tot*100):0}%</b>符號正確率</div>
+    <div><b>${wt?Math.round(wo/wt*100):0}%</b>拼音一次答對</div>
+    <div><b>${Object.keys(st.pen).length}/37</b>已錄筆順</div>
+    <div style="flex-basis:100%"><b style="font-size:19px">${weak.join(' ')||'—'}</b>還要多練</div>`;
+  $('coop').textContent=st.coop?'開啟':'關閉';
+  $('tone').textContent=st.tone?'開啟':'關閉';
+  $('tier').textContent=st.tier;
+  $('loose').textContent=st.loose;
+  $('storeMode').textContent=STORAGE;
+  $('penJson').value=JSON.stringify(st);
+  $('files').innerHTML='';
+  $('parent').hidden=false;
+}
+$('closeParent').onclick=()=>{$('parent').hidden=true};
+$('coop').onclick=()=>{st.coop=!st.coop;store.set(KEY,st);$('coop').textContent=st.coop?'開啟':'關閉'};
+$('tone').onclick=()=>{st.tone=!st.tone;store.set(KEY,st);$('tone').textContent=st.tone?'開啟':'關閉'};
+$('tier').onclick=()=>{st.tier=st.tier%3+1;store.set(KEY,st);$('tier').textContent=st.tier};
+$('loose').onclick=()=>{st.loose=st.loose%3+1;store.set(KEY,st);$('loose').textContent=st.loose};
+$('reset').onclick=()=>{
+  ORDER.forEach(k=>st.s[k]={lv:0,seen:0,ok:0,last:-99});
+  WORDS.forEach(w=>st.w[w[4]]={seen:0,ok:0});
+  st.n=0; store.set(KEY,st); openParent();
+};
+$('penImport').onclick=()=>{
+  try{
+    const o=JSON.parse($('penJson').value);
+    if(o&&typeof o==='object'&&o.s){ st=Object.assign(st,o); store.set(KEY,st); openParent() }
+    else if(o&&typeof o==='object'){ st.pen=o; store.set(KEY,st); openParent() }
+  }catch(e){ $('penJson').value='格式不對，請貼完整的 JSON' }
+};
+$('check').onclick=async()=>{
+  $('files').textContent='檢查中…';
+  const probe=src=>new Promise(res=>{
+    const a=new Audio(src);
+    a.addEventListener('canplaythrough',()=>res(true),{once:true});
+    a.addEventListener('error',()=>res(false),{once:true});
+    setTimeout(()=>res(false),2500);
+  });
+  const a=await Promise.all(DATA.map(async([s,f])=>[s,'audio/'+f+'.'+EXT,await probe(DIR+f+'.'+EXT)]));
+  const b=await Promise.all(WORDS.map(async w=>[w[1],'audio/w/'+w[4]+'.'+EXT,await probe(WDIR+w[4]+'.'+EXT)]));
+  const all=[...a,...b], miss=all.filter(r=>!r[2]).length;
+  $('files').innerHTML=`<div style="margin-bottom:6px">${miss?`缺 ${miss} 個`:'全部都在'}</div>`+
+    all.map(([n,p,ok])=>`<span class="${ok?'ok':'bad'}">${n} ${p}</span>`).join('　');
+};
+
+/* ================= 10. 筆順錄製 ================= */
+const rpad=$('recPad'), rctx=rpad.getContext('2d');
+let ri=0, rStrokes=[], rCur=null, rSize={w:280,h:280};
+function openRec(){
+  $('rec').hidden=false; ri=0; loadRec();
+}
+function loadRec(){
+  const sym=ORDER[ri];
+  rStrokes=(st.pen[sym]||[]).map(s=>s.map(p=>[...p]));
+  rCur=null; rSize=fitCanvas(rpad);
+  $('recInfo').innerHTML=`<span style="font-size:34px">${sym}</span>　${ri+1} / 37
+    ${st.pen[sym]?'<br>已錄過，重寫會覆蓋':''}`;
+  drawRec();
+}
+function drawRec(){
+  const {w,h}=rSize;
+  rctx.clearRect(0,0,w,h);
+  rctx.strokeStyle='#8FB89A'; rctx.globalAlpha=.5; rctx.setLineDash([5,6]); rctx.lineWidth=1;
+  rctx.beginPath(); rctx.moveTo(0,h/2); rctx.lineTo(w,h/2);
+  rctx.moveTo(w/2,0); rctx.lineTo(w/2,h); rctx.stroke();
+  rctx.setLineDash([]); rctx.globalAlpha=1;
+  rctx.fillStyle='#E3E0D6'; rctx.textAlign='center'; rctx.textBaseline='middle';
+  rctx.font=`${Math.round(Math.min(w,h)*.74)}px ${FONT}`;
+  rctx.fillText(ORDER[ri],w/2,h*.52);
+  rctx.strokeStyle='#D93A3A'; rctx.lineWidth=Math.min(w,h)*.05; rctx.lineCap='round'; rctx.lineJoin='round';
+  [...rStrokes,rCur].forEach((s,i)=>{
+    if(!s||!s.length) return;
+    rctx.beginPath(); rctx.moveTo(s[0][0]*w,s[0][1]*h);
+    s.forEach(p=>rctx.lineTo(p[0]*w,p[1]*h)); rctx.stroke();
+    rctx.fillStyle='#232A31'; rctx.font='13px '+FONT;
+    rctx.fillText(i+1,s[0][0]*w,s[0][1]*h-14);
+  });
+}
+rpad.addEventListener('pointerdown',e=>{ rpad.setPointerCapture(e.pointerId); rCur=[padPt(e,rpad)]; drawRec() });
+rpad.addEventListener('pointermove',e=>{ if(!rCur) return; rCur.push(padPt(e,rpad)); drawRec() });
+['pointerup','pointercancel'].forEach(t=>rpad.addEventListener(t,()=>{
+  if(!rCur) return;
+  // 疏化：每個點至少隔 2%，省空間
+  const out=[rCur[0]];
+  rCur.forEach(p=>{ const l=out[out.length-1];
+    if(Math.hypot(p[0]-l[0],p[1]-l[1])>.02) out.push(p) });
+  if(out.length<2) out.push(rCur[rCur.length-1]);
+  rStrokes.push(out.map(p=>[+p[0].toFixed(3),+p[1].toFixed(3)]));
+  rCur=null; drawRec();
+}));
+$('recUndo').onclick=()=>{ rStrokes.pop(); drawRec() };
+$('recPrev').onclick=()=>{ ri=(ri+36)%37; loadRec() };
+$('recSave').onclick=()=>{
+  if(rStrokes.length) st.pen[ORDER[ri]]=rStrokes; store.set(KEY,st);
+  ri=(ri+1)%37; loadRec();
+};
+$('openRec').onclick=openRec;
+$('closeRec').onclick=()=>{ $('rec').hidden=true; openParent() };
+
+addEventListener('resize',()=>{ if(!$('s-pen').hidden){ padSize=fitCanvas(pad); redrawPad() } });
+</script>
+</body>
+</html>

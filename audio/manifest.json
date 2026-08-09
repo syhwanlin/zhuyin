@@ -1,0 +1,500 @@
+[
+ {
+  "sym": "ㄅ",
+  "file": "audio/b.mp3",
+  "han": "波",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄆ",
+  "file": "audio/p.mp3",
+  "han": "坡",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄇ",
+  "file": "audio/m.mp3",
+  "han": "摸",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄈ",
+  "file": "audio/f.mp3",
+  "han": "佛",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄉ",
+  "file": "audio/d.mp3",
+  "han": "得",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄊ",
+  "file": "audio/t.mp3",
+  "han": "特",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄋ",
+  "file": "audio/n.mp3",
+  "han": "呢",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄌ",
+  "file": "audio/l.mp3",
+  "han": "勒",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄍ",
+  "file": "audio/g.mp3",
+  "han": "哥",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄎ",
+  "file": "audio/k.mp3",
+  "han": "科",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄏ",
+  "file": "audio/h.mp3",
+  "han": "喝",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄐ",
+  "file": "audio/j.mp3",
+  "han": "雞",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄑ",
+  "file": "audio/q.mp3",
+  "han": "七",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄒ",
+  "file": "audio/x.mp3",
+  "han": "西",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄓ",
+  "file": "audio/zh.mp3",
+  "han": "知",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄔ",
+  "file": "audio/ch.mp3",
+  "han": "吃",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄕ",
+  "file": "audio/sh.mp3",
+  "han": "師",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄖ",
+  "file": "audio/r.mp3",
+  "han": "日",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄗ",
+  "file": "audio/z.mp3",
+  "han": "資",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄘ",
+  "file": "audio/ts.mp3",
+  "han": "雌",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄙ",
+  "file": "audio/s.mp3",
+  "han": "思",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄚ",
+  "file": "audio/a.mp3",
+  "han": "啊",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄛ",
+  "file": "audio/o.mp3",
+  "han": "喔",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄜ",
+  "file": "audio/e.mp3",
+  "han": "惡",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄝ",
+  "file": "audio/eh.mp3",
+  "han": "耶",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄞ",
+  "file": "audio/ai.mp3",
+  "han": "哀",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄟ",
+  "file": "audio/ei.mp3",
+  "han": "誒",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄠ",
+  "file": "audio/ao.mp3",
+  "han": "凹",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄡ",
+  "file": "audio/ou.mp3",
+  "han": "歐",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄢ",
+  "file": "audio/an.mp3",
+  "han": "安",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄣ",
+  "file": "audio/en.mp3",
+  "han": "恩",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄤ",
+  "file": "audio/ang.mp3",
+  "han": "骯",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄥ",
+  "file": "audio/eng.mp3",
+  "han": "鞥",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄦ",
+  "file": "audio/er.mp3",
+  "han": "兒",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄧ",
+  "file": "audio/i.mp3",
+  "han": "衣",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄨ",
+  "file": "audio/u.mp3",
+  "han": "烏",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄩ",
+  "file": "audio/yu.mp3",
+  "han": "迂",
+  "kind": "symbol"
+ },
+ {
+  "sym": "ㄇㄠ",
+  "file": "audio/w/mao1.mp3",
+  "han": "貓",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄍㄡ",
+  "file": "audio/w/gou3.mp3",
+  "han": "狗",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄇㄚ",
+  "file": "audio/w/ma3.mp3",
+  "han": "馬",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄓㄨ",
+  "file": "audio/w/zhu1.mp3",
+  "han": "豬",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄊㄨ",
+  "file": "audio/w/tu4.mp3",
+  "han": "兔",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄐㄧ",
+  "file": "audio/w/ji1.mp3",
+  "han": "雞",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄕㄜ",
+  "file": "audio/w/she2.mp3",
+  "han": "蛇",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄈㄥ",
+  "file": "audio/w/feng1.mp3",
+  "han": "蜂",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄕㄢ",
+  "file": "audio/w/shan1.mp3",
+  "han": "山",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄔㄜ",
+  "file": "audio/w/che1.mp3",
+  "han": "車",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄔㄚ",
+  "file": "audio/w/cha2.mp3",
+  "han": "茶",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄉㄢ",
+  "file": "audio/w/dan4.mp3",
+  "han": "蛋",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄊㄤ",
+  "file": "audio/w/tang2.mp3",
+  "han": "糖",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄈㄢ",
+  "file": "audio/w/fan4.mp3",
+  "han": "飯",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄙㄢ",
+  "file": "audio/w/san3.mp3",
+  "han": "傘",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄇㄠ",
+  "file": "audio/w/mao4.mp3",
+  "han": "帽",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄉㄠ",
+  "file": "audio/w/dao1.mp3",
+  "han": "刀",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄕㄨ",
+  "file": "audio/w/shu1.mp3",
+  "han": "書",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄕㄡ",
+  "file": "audio/w/shou3.mp3",
+  "han": "手",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄇㄣ",
+  "file": "audio/w/men2.mp3",
+  "han": "門",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄉㄥ",
+  "file": "audio/w/deng1.mp3",
+  "han": "燈",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄘㄠ",
+  "file": "audio/w/cao3.mp3",
+  "han": "草",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄕㄨ",
+  "file": "audio/w/shu4.mp3",
+  "han": "樹",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄦ",
+  "file": "audio/w/er3.mp3",
+  "han": "耳",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄏㄨㄚ",
+  "file": "audio/w/hua1.mp3",
+  "han": "花",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄏㄨㄛ",
+  "file": "audio/w/huo3.mp3",
+  "han": "火",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄕㄨㄟ",
+  "file": "audio/w/shui3.mp3",
+  "han": "水",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄋㄧㄠ",
+  "file": "audio/w/niao3.mp3",
+  "han": "鳥",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄒㄧㄤ",
+  "file": "audio/w/xiang4.mp3",
+  "han": "象",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄐㄧㄠ",
+  "file": "audio/w/jiao3.mp3",
+  "han": "腳",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄅㄧ",
+  "file": "audio/w/bi2.mp3",
+  "han": "鼻",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄅㄧㄥ",
+  "file": "audio/w/bing3.mp3",
+  "han": "餅",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄑㄧㄡ",
+  "file": "audio/w/qiu2.mp3",
+  "han": "球",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄒㄧㄝ",
+  "file": "audio/w/xie2.mp3",
+  "han": "鞋",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄒㄧㄥ",
+  "file": "audio/w/xing1.mp3",
+  "han": "星",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄩ",
+  "file": "audio/w/yu2.mp3",
+  "han": "魚",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄩ",
+  "file": "audio/w/yu3.mp3",
+  "han": "雨",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄩㄝ",
+  "file": "audio/w/yue4.mp3",
+  "han": "月",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄧㄤ",
+  "file": "audio/w/yang2.mp3",
+  "han": "羊",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄧㄚ",
+  "file": "audio/w/ya1.mp3",
+  "han": "鴨",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄧㄢ",
+  "file": "audio/w/yan3.mp3",
+  "han": "眼",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄧㄝ",
+  "file": "audio/w/ye4.mp3",
+  "han": "葉",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄒㄩㄝ",
+  "file": "audio/w/xue3.mp3",
+  "han": "雪",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄒㄩㄥ",
+  "file": "audio/w/xiong2.mp3",
+  "han": "熊",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄔㄨㄢ",
+  "file": "audio/w/chuan2.mp3",
+  "han": "船",
+  "kind": "word"
+ },
+ {
+  "sym": "ㄔㄨㄤ",
+  "file": "audio/w/chuang2.mp3",
+  "han": "床",
+  "kind": "word"
+ }
+]
