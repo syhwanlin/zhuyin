@@ -299,6 +299,14 @@
 
   <h2>語音檔</h2>
   <div class="row">
+    <div>系統語音念法
+      <p>沒音檔也沒錄音時要念什麼。念注音符號比較接近本音
+         （ㄈ 會念成類似「ㄈㄜ」、ㄉ 像「ㄉㄜ」），但有些裝置念不出符號會變沒聲音；
+         念代表字一定有聲音，但聲調常常是錯的。自動＝開場先試一次再決定。
+         上面熟練度的格子點下去可以馬上聽。</p></div>
+    <button class="sm" id="sayMode">自動</button>
+  </div>
+  <div class="row">
     <div>自己錄符號的音
       <p>沒放音檔時是用系統語音念代表字，聲調是錯的（ㄈ 會念成「佛」ㄈㄛˊ、
          ㄊ 念成「特」ㄊㄜˋ）。自己錄一次最準，錄了就蓋掉上面兩種。</p></div>
@@ -512,7 +520,7 @@ const KEY='zhuyin.progress.v3', VKEY='zhuyin.voice.v1';
 
 /* ================= 3. 熟練度 ================= */
 const GAP=[0,0,1,3,8,20], MAXNEW=6, ROUND=8;
-let st={n:0,coop:false,tier:1,tone:false,loose:2,guide:2,s:{},w:{},pen:{}};
+let st={n:0,coop:false,tier:1,tone:false,loose:2,guide:2,say:'auto',bopo:null,s:{},w:{},pen:{}};
 ORDER.forEach(k=>st.s[k]={lv:0,seen:0,ok:0,last:-99});
 WORDS.forEach(w=>st.w[w[4]]={seen:0,ok:0});
 
@@ -560,7 +568,24 @@ function playFile(src,fb){
   a.play().catch(()=>{ speak(fb); setTimeout(()=>ring(false),900) });
 }
 let voice={};                                    // 家長自己錄的符號音，存在本機
-const playSym=s=>playFile(voice[s]||(DIR+SYM[s].file+'.'+EXT),SYM[s].tts);
+/* 沒有音檔時要念什麼：有些裝置的中文語音念得出注音符號本身，
+   而且念出來就是接近本音的「ㄈㄜ」「ㄉㄜ」，比念代表字（佛ㄈㄛˊ、德ㄉㄜˊ）準。
+   念不出來的裝置會直接跳過變沒聲音，所以先偷偷試一次再決定。 */
+const sayText=s=>(st.say==='sym'||(st.say!=='han'&&st.bopo))?s:SYM[s].tts;
+const playSym=s=>playFile(voice[s]||(DIR+SYM[s].file+'.'+EXT),sayText(s));
+function probeBopo(){
+  if(st.bopo!=null||typeof speechSynthesis==='undefined') return;
+  try{
+    const u=new SpeechSynthesisUtterance('ㄅ');
+    u.lang='zh-TW'; u.volume=0;
+    let t0=0;
+    u.onstart=()=>{t0=performance.now()};
+    u.onend=()=>{ st.bopo=t0?(performance.now()-t0)>150:false; store.set(KEY,st) };
+    u.onerror=()=>{ st.bopo=false; store.set(KEY,st) };
+    speechSynthesis.speak(u);
+    setTimeout(()=>{ if(st.bopo==null){ st.bopo=false; store.set(KEY,st) } },4000);
+  }catch(e){ st.bopo=false }
+}
 const playWord=w=>playFile(WDIR+w[4]+'.'+EXT,w[1]);
 function speak(t){ try{ speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t); u.lang='zh-TW'; u.rate=.75; speechSynthesis.speak(u) }catch(e){} }
@@ -589,6 +614,7 @@ function unlock(){
   try{ const a=new Audio(SILENT); a.volume=0; a.play().catch(()=>{}) }catch(e){}
   try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; u.lang='zh-TW';
        speechSynthesis.speak(u) }catch(e){}
+  probeBopo();
 }
 async function begin(m){
   unlock();
@@ -1018,6 +1044,7 @@ function openParent(){
   $('tier').textContent=st.tier;
   $('loose').textContent=st.loose;
   $('guide').textContent=GUIDE[st.guide]||GUIDE[2];
+  $('sayMode').textContent=SAYLBL();
   $('storeMode').textContent=STORAGE;
   $('penJson').value=JSON.stringify(st);
   $('files').innerHTML='';
@@ -1029,6 +1056,13 @@ $('tone').onclick=()=>{st.tone=!st.tone;store.set(KEY,st);$('tone').textContent=
 $('tier').onclick=()=>{st.tier=st.tier%3+1;store.set(KEY,st);$('tier').textContent=st.tier};
 $('loose').onclick=()=>{st.loose=st.loose%3+1;store.set(KEY,st);$('loose').textContent=st.loose};
 const GUIDE={1:'多',2:'中',3:'少'};
+const SAYLBL=()=>st.say==='sym'?'念符號':st.say==='han'?'念代表字'
+  :'自動（'+(st.bopo?'符號':st.bopo===false?'代表字':'還沒試')+'）';
+$('sayMode').onclick=()=>{
+  st.say=st.say==='auto'?'sym':st.say==='sym'?'han':'auto';
+  store.set(KEY,st); $('sayMode').textContent=SAYLBL();
+  playSym(ORDER.find(k=>st.s[k].lv>0)||'ㄈ');       // 切了馬上聽得到差別
+};
 $('guide').onclick=()=>{st.guide=st.guide%3+1;store.set(KEY,st);$('guide').textContent=GUIDE[st.guide]};
 $('reset').onclick=()=>{
   ORDER.forEach(k=>st.s[k]={lv:0,seen:0,ok:0,last:-99});
@@ -1124,7 +1158,7 @@ const voiceKB=()=>Math.round(Object.values(voice).reduce((n,v)=>n+v.length,0)/10
 function drawVoice(){
   const sym=ORDER[vi], has=!!voice[sym], n=Object.keys(voice).length;
   $('voiceInfo').innerHTML=`<span style="font-size:40px">${sym}</span>　${vi+1} / 37
-    <br>${has?'已經錄過，再錄會覆蓋':'還沒錄，現在用系統語音念「'+SYM[sym].tts+'」'}
+    <br>${has?'已經錄過，再錄會覆蓋':'還沒錄，現在用系統語音念「'+sayText(sym)+'」'}
     <br><span style="font-size:12.5px">已錄 ${n} 個，佔 ${voiceKB()} KB${vMsg?'　'+vMsg:''}</span>`;
   $('voiceMap').innerHTML=ORDER.map(k=>
     `<div class="m ${voice[k]?'has':''}" data-s="${k}"
