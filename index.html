@@ -133,9 +133,9 @@
   .pick .big{font-size:38px;line-height:1}
   .pick .lbl{font-size:14px;color:var(--ink-soft);letter-spacing:.06em}
 
-  #parent,#rec{position:fixed;inset:0;background:var(--paper);z-index:30;overflow-y:auto;
+  #parent,#rec,#voice{position:fixed;inset:0;background:var(--paper);z-index:30;overflow-y:auto;
     padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 32px)}
-  #parent[hidden],#rec[hidden]{display:none}
+  #parent[hidden],#rec[hidden],#voice[hidden]{display:none}
   .wrap{max-width:520px;margin:0 auto}
   h2{font-size:17px;margin:26px 0 10px;letter-spacing:.06em;font-weight:600}
   .stats{display:flex;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--ink-soft)}
@@ -299,8 +299,15 @@
 
   <h2>語音檔</h2>
   <div class="row">
+    <div>自己錄符號的音
+      <p>沒放音檔時是用系統語音念代表字，聲調是錯的（ㄈ 會念成「佛」ㄈㄛˊ、
+         ㄊ 念成「特」ㄊㄜˋ）。自己錄一次最準，錄了就蓋掉上面兩種。</p></div>
+    <button class="sm" id="openVoice">開始錄</button>
+  </div>
+  <div class="row">
     <div>檢查音檔
-      <p>符號音放 <code>audio/</code>，語詞音放 <code>audio/w/</code>。</p></div>
+      <p>符號音放 <code>audio/</code>，語詞音放 <code>audio/w/</code>。
+         點上面「每個符號的熟練度」裡的格子可以直接試聽。</p></div>
     <button class="sm" id="check">檢查</button>
   </div>
   <div class="files" id="files"></div>
@@ -320,6 +327,25 @@
     <div>清除學習進度<p>熟練度歸零，筆順資料保留。</p></div>
     <button class="sm danger" id="reset">清除</button>
   </div>
+</div></div>
+
+<div id="voice" hidden><div class="wrap">
+  <div class="row" style="border:none;padding-top:0">
+    <div style="font-size:19px;font-weight:600">錄符號的音</div>
+    <button class="sm" id="closeVoice">完成</button>
+  </div>
+  <div class="recinfo" id="voiceInfo"></div>
+  <div class="recbar">
+    <button class="sm" id="voicePrev">← 上一個</button>
+    <button class="sm" id="voiceRec">按住錄音</button>
+    <button class="sm" id="voicePlay">試聽</button>
+    <button class="sm danger" id="voiceDel">刪掉</button>
+    <button class="sm" id="voiceNext">下一個 →</button>
+  </div>
+  <div class="map" id="voiceMap" style="margin-top:14px"></div>
+  <div class="recinfo">按住「按住錄音」講一次，放開就存。錄過的符號會標紅框。<br>
+    念<b>本音</b>就好——ㄅ 念短短的「ㄅ」，不要念成「ㄅㄛ」。<br>
+    錄音只存在這台裝置上，不會上傳，也不會跟著進度一起匯出。</div>
 </div></div>
 
 <div id="rec" hidden><div class="wrap">
@@ -343,12 +369,12 @@
 /* ================= 1. 資料 ================= */
 const DATA=[
   ['ㄅ','b','c','波'],['ㄆ','p','c','坡'],['ㄇ','m','c','摸'],['ㄈ','f','c','佛'],
-  ['ㄉ','d','c','得'],['ㄊ','t','c','特'],['ㄋ','n','c','呢'],['ㄌ','l','c','勒'],
+  ['ㄉ','d','c','德'],['ㄊ','t','c','特'],['ㄋ','n','c','呢'],['ㄌ','l','c','勒'],
   ['ㄍ','g','c','哥'],['ㄎ','k','c','科'],['ㄏ','h','c','喝'],
   ['ㄐ','j','c','雞'],['ㄑ','q','c','七'],['ㄒ','x','c','西'],
   ['ㄓ','zh','c','知'],['ㄔ','ch','c','吃'],['ㄕ','sh','c','師'],['ㄖ','r','c','日'],
   ['ㄗ','z','c','資'],['ㄘ','ts','c','雌'],['ㄙ','s','c','思'],
-  ['ㄚ','a','v','啊'],['ㄛ','o','v','喔'],['ㄜ','e','v','惡'],['ㄝ','eh','v','耶'],
+  ['ㄚ','a','v','啊'],['ㄛ','o','v','喔'],['ㄜ','e','v','鵝'],['ㄝ','eh','v','耶'],
   ['ㄞ','ai','v','哀'],['ㄟ','ei','v','誒'],['ㄠ','ao','v','凹'],['ㄡ','ou','v','歐'],
   ['ㄢ','an','v','安'],['ㄣ','en','v','恩'],['ㄤ','ang','v','骯'],['ㄥ','eng','v','鞥'],
   ['ㄦ','er','v','兒'],['ㄧ','i','v','衣'],['ㄨ','u','v','烏'],['ㄩ','yu','v','迂']];
@@ -361,6 +387,10 @@ const CONFUSE=[['ㄅ','ㄆ'],['ㄇ','ㄈ'],['ㄉ','ㄊ'],['ㄋ','ㄌ'],['ㄍ','�
   ['ㄐ','ㄑ','ㄒ'],['ㄓ','ㄔ','ㄕ'],['ㄗ','ㄘ','ㄙ'],['ㄊ','ㄦ'],['ㄡ','ㄩ'],
   ['ㄨ','ㄩ'],['ㄛ','ㄜ'],['ㄢ','ㄣ'],['ㄤ','ㄥ'],['ㄞ','ㄟ'],['ㄠ','ㄡ']];
 const near=s=>[...new Set(CONFUSE.filter(g=>g.includes(s)).flat())].filter(x=>x!==s);
+/* 呼讀音的尾巴：ㄅ 念「ㄅㄛ」，所以 ㄛ 不能跟 ㄅ 出現在同一題，
+   不然小孩聽到「ㄅㄛ」選 ㄛ 其實沒有錯 */
+const ECHO={ㄅ:'ㄛ',ㄆ:'ㄛ',ㄇ:'ㄛ',ㄈ:'ㄛ',ㄉ:'ㄜ',ㄊ:'ㄜ',ㄋ:'ㄜ',ㄌ:'ㄜ',
+  ㄍ:'ㄜ',ㄎ:'ㄜ',ㄏ:'ㄜ',ㄐ:'ㄧ',ㄑ:'ㄧ',ㄒ:'ㄧ'};
 
 const WORDS=[
   ['🐱','貓',['ㄇ','ㄠ'],1,'mao1',1],['🐶','狗',['ㄍ','ㄡ'],3,'gou3',1],
@@ -478,7 +508,7 @@ const store=(()=>{
     }
   };
 })();
-const KEY='zhuyin.progress.v3';
+const KEY='zhuyin.progress.v3', VKEY='zhuyin.voice.v1';
 
 /* ================= 3. 熟練度 ================= */
 const GAP=[0,0,1,3,8,20], MAXNEW=6, ROUND=8;
@@ -504,11 +534,12 @@ function nextSymbol(){
   pool.sort((a,b)=>(st.s[a].lv-st.s[b].lv)||(st.s[a].last-st.s[b].last));
   const ans=pool[Math.floor(Math.random()*Math.min(3,pool.length))];
   recent.push(ans); if(recent.length>4) recent.shift();
-  const seen=introduced().filter(k=>k!==ans), opts=[ans];
+  const echo=ECHO[ans];
+  const seen=introduced().filter(k=>k!==ans&&k!==echo), opts=[ans];
   if(st.s[ans].lv>=3) shuffle(near(ans).filter(k=>seen.includes(k))).slice(0,2).forEach(k=>opts.push(k));
   const same=shuffle(seen.filter(k=>SYM[k].type===SYM[ans].type&&!opts.includes(k)));
   const rest=shuffle(seen.filter(k=>!opts.includes(k)));
-  const fill=shuffle(ORDER.filter(k=>!opts.includes(k)));
+  const fill=shuffle(ORDER.filter(k=>!opts.includes(k)&&k!==echo));
   [...same,...rest,...fill].forEach(k=>{if(opts.length<4&&!opts.includes(k))opts.push(k)});
   return {ans,opts:shuffle(opts)};
 }
@@ -528,7 +559,8 @@ function playFile(src,fb){
   a.currentTime=0; a.onended=()=>ring(false);
   a.play().catch(()=>{ speak(fb); setTimeout(()=>ring(false),900) });
 }
-const playSym=s=>playFile(DIR+SYM[s].file+'.'+EXT,SYM[s].tts);
+let voice={};                                    // 家長自己錄的符號音，存在本機
+const playSym=s=>playFile(voice[s]||(DIR+SYM[s].file+'.'+EXT),SYM[s].tts);
 const playWord=w=>playFile(WDIR+w[4]+'.'+EXT,w[1]);
 function speak(t){ try{ speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t); u.lang='zh-TW'; u.rate=.75; speechSynthesis.speak(u) }catch(e){} }
@@ -561,6 +593,7 @@ function unlock(){
 async function begin(m){
   unlock();
   const saved=await store.get(KEY); if(saved&&saved.s) st=Object.assign(st,saved);
+  voice=(await store.get(VKEY))||{};
   if(!st.guide) st.guide=2; if(!st.loose) st.loose=2;
   ORDER.forEach(k=>{ if(!st.s[k]) st.s[k]={lv:0,seen:0,ok:0,last:-99} });
   WORDS.forEach(w=>{ if(!st.w[w[4]]) st.w[w[4]]={seen:0,ok:0} });
@@ -966,7 +999,8 @@ function openParent(){
   $('map').innerHTML=ORDER.map(k=>{
     const r=st.s[k];
     const bg=r.lv===0?'#fff':r.lv<=1?'#FFE0DE':r.lv<4?'#FFE9A8':'#CDE8D5';
-    return `<div class="m ${st.pen[k]&&st.pen[k].length?'has':''}" style="background:${bg}">${k}<span>${r.lv||''}</span></div>`;
+    return `<div class="m ${st.pen[k]&&st.pen[k].length?'has':''}" data-s="${k}"
+      style="background:${bg}">${k}<span>${r.lv||''}</span></div>`;
   }).join('');
   const seen=ORDER.filter(k=>st.s[k].seen>0);
   const tot=seen.reduce((a,k)=>a+st.s[k].seen,0), ok=seen.reduce((a,k)=>a+st.s[k].ok,0);
@@ -1081,6 +1115,84 @@ $('recSave').onclick=()=>{        // 沒改過就只是翻頁，不會把內建�
 };
 $('openRec').onclick=openRec;
 $('closeRec').onclick=()=>{ $('rec').hidden=true; openParent() };
+
+/* ================= 11. 錄符號的音 =================
+   家長自己念一次，存成 data URL 放在本機（另一把鑰匙，不跟進度混在一起）。
+   有錄音就優先播，其次才是 audio/ 裡的檔，都沒有才退回系統語音。 */
+let vi=0, vStream=null, vRec=null, vChunks=[], vBusy=false, vCap=null, vMsg='';
+const voiceKB=()=>Math.round(Object.values(voice).reduce((n,v)=>n+v.length,0)/1024);
+function drawVoice(){
+  const sym=ORDER[vi], has=!!voice[sym], n=Object.keys(voice).length;
+  $('voiceInfo').innerHTML=`<span style="font-size:40px">${sym}</span>　${vi+1} / 37
+    <br>${has?'已經錄過，再錄會覆蓋':'還沒錄，現在用系統語音念「'+SYM[sym].tts+'」'}
+    <br><span style="font-size:12.5px">已錄 ${n} 個，佔 ${voiceKB()} KB${vMsg?'　'+vMsg:''}</span>`;
+  $('voiceMap').innerHTML=ORDER.map(k=>
+    `<div class="m ${voice[k]?'has':''}" data-s="${k}"
+      style="background:${k===sym?'#FFE9A8':'#fff'}">${k}</div>`).join('');
+  $('voicePlay').disabled=!has; $('voiceDel').disabled=!has;
+}
+async function openVoice(){
+  $('voice').hidden=false; vi=0; drawVoice();
+  if(!navigator.mediaDevices||!window.MediaRecorder){
+    $('voiceRec').disabled=true;
+    $('voiceRec').textContent='這台裝置不能錄';
+    return;
+  }
+  try{ vStream=await navigator.mediaDevices.getUserMedia({audio:true}) }
+  catch(e){ $('voiceRec').disabled=true; $('voiceRec').textContent='沒有麥克風權限' }
+}
+function closeVoice(){
+  $('voice').hidden=true;
+  if(vStream){ vStream.getTracks().forEach(t=>t.stop()); vStream=null }
+  openParent();
+}
+function startRec(){
+  if(!vStream||vBusy) return;
+  vChunks=[]; vBusy=true;
+  try{ vRec=new MediaRecorder(vStream) }catch(e){ vBusy=false; return }
+  vRec.ondataavailable=e=>{ if(e.data.size) vChunks.push(e.data) };
+  vRec.onstop=async()=>{
+    clearTimeout(vCap);
+    const b=new Blob(vChunks,{type:vRec.mimeType||'audio/webm'});
+    const fr=new FileReader();
+    fr.onload=async()=>{
+      const sym=ORDER[vi], prev=voice[sym];
+      voice[sym]=fr.result;
+      await store.set(VKEY,voice);
+      const back=await store.get(VKEY);          // 確認真的存進去，超過容量會存不了
+      if(!back||!back[sym]){
+        if(prev) voice[sym]=prev; else delete voice[sym];
+        vMsg='存不下了，先刪掉幾個'; vBusy=false; drawVoice(); return;
+      }
+      vMsg=''; vBusy=false; drawVoice();
+      delete cache[fr.result]; playSym(sym);
+    };
+    fr.readAsDataURL(b);
+  };
+  vRec.start();
+  vCap=setTimeout(stopRec,2500);                 // 最多錄兩秒半，免得塞爆本機空間
+  $('voiceRec').textContent='錄音中…放開結束';
+}
+function stopRec(){
+  if(!vRec||vRec.state!=='recording'){ vBusy=false; return }
+  vRec.stop(); $('voiceRec').textContent='按住錄音';
+}
+$('openVoice').onclick=openVoice;
+$('closeVoice').onclick=closeVoice;
+$('voicePrev').onclick=()=>{ vi=(vi+36)%37; drawVoice() };
+$('voiceNext').onclick=()=>{ vi=(vi+1)%37; drawVoice() };
+$('voicePlay').onclick=()=>playSym(ORDER[vi]);
+$('voiceDel').onclick=()=>{ delete voice[ORDER[vi]]; store.set(VKEY,voice); drawVoice() };
+$('voiceMap').addEventListener('click',e=>{
+  const m=e.target.closest('.m'); if(!m) return;
+  vi=ORDER.indexOf(m.dataset.s); drawVoice();
+});
+['pointerdown'].forEach(t=>$('voiceRec').addEventListener(t,e=>{e.preventDefault();startRec()}));
+['pointerup','pointerleave','pointercancel'].forEach(t=>$('voiceRec').addEventListener(t,stopRec));
+/* 家長頁的熟練度格子點了就試聽 */
+$('map').addEventListener('click',e=>{
+  const m=e.target.closest('.m'); if(m&&m.dataset.s) playSym(m.dataset.s);
+});
 
 addEventListener('resize',()=>{ if(!$('s-pen').hidden){ padSize=fitCanvas(pad); redrawPad() } });
 </script>
